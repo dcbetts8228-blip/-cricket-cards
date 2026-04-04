@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <!-- ── PWA Meta Tags ── -->
+  <meta name="theme-color" content="#0d0f14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cricket Cards">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Cricket Cards">
+  <meta name="description" content="Faceless Ones batting & bowling card viewer with mode and reference charts">
+
+  <!-- ── PWA Icons (inline SVG as data URIs) ── -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%230d0f14'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='300' font-family='serif'%3E%F0%9F%8F%8F%3C/text%3E%3Ctext x='50%25' y='92%25' text-anchor='middle' font-size='72' font-family='sans-serif' fill='%23e8c840' letter-spacing='4'%3ECARDS%3C/text%3E%3C/svg%3E">
+
+  <!-- ── Web App Manifest (inline as data URI) ── -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Cricket+Cards+%E2%80%94+Faceless+Ones%22%2C%22short_name%22%3A%22Cricket+Cards%22%2C%22description%22%3A%22Faceless+Ones+batting+%26+bowling+card+viewer%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230d0f14%22%2C%22theme_color%22%3A%22%230d0f14%22%2C%22orientation%22%3A%22landscape%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D%2527http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%2527%2520viewBox%3D%25270%25200%2520512%2520512%2527%253E%253Crect%2520width%3D%2527512%2527%2520height%3D%2527512%2527%2520rx%3D%252780%2527%2520fill%3D%2527%25230d0f14%2527%2F%253E%253Ctext%2520x%3D%252750%2525%2527%2520y%3D%252758%2525%2527%2520text-anchor%3D%2527middle%2527%2520font-size%3D%2527300%2527%253E%25F0%259F%258F%258F%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any+maskable%22%7D%5D%7D">
+
+<title>Faceless Ones — Card Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --border: #252836;
+    --accent-bat: #e8c840;
+    --accent-bowl: #4fc3a1;
+    --text: #d4d8e8;
+    --muted: #5a607a;
+    --card-bg: #181c28;
+  }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+
+/* ── HEADER ── */
+header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 28px; display:flex; align-items:center; gap:16px; flex-shrink:0; z-index:100; }
+header h1 { font-family:'Bebas Neue',sans-serif; font-size:1.7rem; letter-spacing:0.12em; color:var(--accent-bat); line-height:1; }
+.header-divider { width:1px; height:24px; background:var(--border); }
+.header-tag { font-family:'IBM Plex Mono',monospace; font-size:0.65rem; color:var(--muted); letter-spacing:0.15em; text-transform:uppercase; border:1px solid var(--border); padding:3px 8px; border-radius:3px; }
+.header-mode { margin-left:auto; display:flex; gap:10px; align-items:center; }
+.mode-pill { font-family:'IBM Plex Mono',monospace; font-size:0.65rem; letter-spacing:0.1em; padding:4px 10px; border-radius:20px; border:1px solid; display:flex; align-items:center; gap:6px; }
+.mode-bat  { border-color:var(--accent-bat);  color:var(--accent-bat);  background:rgba(232,200,64,0.08); }
+.mode-bowl { border-color:var(--accent-bowl); color:var(--accent-bowl); background:rgba(79,195,161,0.08); }
+.mode-dot  { width:6px; height:6px; border-radius:50%; }
+.mode-bat  .mode-dot { background:var(--accent-bat); }
+.mode-bowl .mode-dot { background:var(--accent-bowl); }
+
+/* ── ROOT LAYOUT ── */
+.root { display:flex; flex:1; overflow:hidden; min-height:0; }
+
+/* ── SIDEBARS ── */
+.sidebar { width:210px; flex-shrink:0; background:var(--surface); display:flex; flex-direction:column; overflow:hidden; transition:width 0.3s ease; }
+.sidebar.collapsed { width:36px; }
+.sidebar-left  { border-right:1px solid var(--border); }
+.sidebar-right { border-left:1px solid var(--border); }
+.sidebar-header { padding:10px 10px 9px; border-bottom:1px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:6px; min-width:36px; }
+.sidebar-title { font-family:'IBM Plex Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; transition:opacity 0.2s; }
+.sidebar.collapsed .sidebar-title { opacity:0; pointer-events:none; }
+.sidebar-title.bat  { color:var(--accent-bat); }
+.sidebar-title.bowl { color:var(--accent-bowl); }
+.sidebar-title-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+.bat  .sidebar-title-dot { background:var(--accent-bat); }
+.bowl .sidebar-title-dot { background:var(--accent-bowl); }
+.collapse-btn { flex-shrink:0; background:none; border:1px solid var(--border); border-radius:3px; width:20px; height:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:0.55rem; transition:color 0.15s,border-color 0.15s; line-height:1; }
+.collapse-btn:hover { color:var(--text); border-color:var(--text); }
+.sidebar-left  .collapse-btn { order:2; }
+.sidebar-right .collapse-btn { order:-1; }
+.sidebar.collapsed .sidebar-scroll { overflow:hidden; }
+.sidebar-tab { display:none; position:absolute; top:50%; transform:translateY(-50%); writing-mode:vertical-rl; font-family:'IBM Plex Mono',monospace; font-size:0.55rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); white-space:nowrap; padding:8px 0; cursor:pointer; user-select:none; }
+.sidebar.collapsed .sidebar-tab { display:block; }
+.sidebar-scroll { overflow-y:auto; flex:1; }
+
+/* ── GROUPS ── */
+.group { border-bottom:1px solid var(--border); }
+.group-toggle { width:100%; background:none; border:none; padding:9px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem; font-weight:600; letter-spacing:0.03em; transition:background 0.15s,color 0.15s; text-align:left; }
+.group-toggle:hover { background:rgba(255,255,255,0.03); }
+.group-toggle.bat-active  { color:var(--accent-bat);  background:rgba(232,200,64,0.06); }
+.group-toggle.bowl-active { color:var(--accent-bowl); background:rgba(79,195,161,0.06); }
+.chevron { font-size:0.55rem; transition:transform 0.2s; color:var(--muted); flex-shrink:0; }
+.group-toggle.bat-active  .chevron { transform:rotate(180deg); color:var(--accent-bat); }
+.group-toggle.bowl-active .chevron { transform:rotate(180deg); color:var(--accent-bowl); }
+.card-list { display:none; background:rgba(0,0,0,0.18); border-top:1px solid var(--border); }
+.card-list.open { display:block; }
+.card-btn { width:100%; background:none; border:none; padding:6px 14px 6px 22px; text-align:left; cursor:pointer; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:0.63rem; letter-spacing:0.02em; transition:color 0.12s,background 0.12s; display:flex; align-items:center; gap:7px; line-height:1.3; }
+.card-btn:hover { color:var(--text); background:rgba(255,255,255,0.02); }
+.card-btn.bat-selected  { color:var(--accent-bat); }
+.card-btn.bowl-selected { color:var(--accent-bowl); }
+.pdot { width:4px; height:4px; border-radius:50%; flex-shrink:0; background:var(--muted); }
+.card-btn.bat-selected  .pdot { background:var(--accent-bat); }
+.card-btn.bowl-selected .pdot { background:var(--accent-bowl); }
+.card-btn-label { flex:1; }
+.card-btn-sub { font-size:0.5rem; color:var(--muted); display:block; margin-top:1px; font-style:italic; line-height:1.2; }
+
+/* ── CENTRE ── */
+.centre { flex:1; overflow-y:auto; padding:24px 20px; display:flex; gap:20px; align-items:flex-start; justify-content:center; }
+.slot-empty { flex:1; max-width:420px; min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px dashed var(--border); border-radius:8px; color:var(--muted); gap:10px; }
+.slot-empty .slot-icon { font-size:2.5rem; opacity:0.25; }
+.slot-empty .slot-label { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:0.1em; }
+.slot-empty .slot-sub { font-family:'IBM Plex Mono',monospace; font-size:0.6rem; letter-spacing:0.1em; text-align:center; line-height:1.6; }
+.slot-empty.bat-slot  { border-color:rgba(232,200,64,0.15); }
+.slot-empty.bowl-slot { border-color:rgba(79,195,161,0.15); }
+
+/* ── CARDS ── */
+.card-wrap { flex:1; max-width:420px; animation:fadeSlide 0.2s ease; }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+.card-header { border-radius:8px 8px 0 0; padding:18px 20px 14px; position:relative; overflow:hidden; background:var(--card-bg); border:1px solid var(--border); border-bottom:none; }
+.card-header::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+.bat-header::before  { background:linear-gradient(90deg,var(--accent-bat),#c8a820); }
+.bowl-header::before { background:linear-gradient(90deg,var(--accent-bowl),#2a9a7a); }
+.card-header::after { content:attr(data-bg); position:absolute; right:-6px; top:50%; transform:translateY(-50%); font-family:'Bebas Neue',sans-serif; font-size:3.8rem; letter-spacing:0.08em; color:rgba(255,255,255,0.03); pointer-events:none; white-space:nowrap; }
+.card-type-tag { font-family:'IBM Plex Mono',monospace; font-size:0.55rem; letter-spacing:0.2em; text-transform:uppercase; margin-bottom:3px; }
+.bat-type  { color:var(--accent-bat); }
+.bowl-type { color:var(--accent-bowl); }
+.card-id   { font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:0.08em; line-height:1; color:#fff; margin-bottom:2px; }
+.card-desc { font-family:'IBM Plex Mono',monospace; font-size:0.6rem; color:var(--muted); letter-spacing:0.04em; margin-bottom:10px; font-style:italic; }
+.card-badges { display:flex; flex-wrap:wrap; gap:5px; }
+.badge { font-family:'IBM Plex Mono',monospace; font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; padding:3px 7px; border-radius:3px; border:1px solid; }
+.badge-avg   { border-color:var(--accent-bat); color:var(--accent-bat); background:rgba(232,200,64,0.1); font-weight:600; }
+.badge-type  { border-color:#3a6ea8; color:#6aadee; background:rgba(58,110,168,0.12); }
+.badge-econ  { border-color:var(--accent-bowl); color:var(--accent-bowl); background:rgba(79,195,161,0.08); }
+.badge-wkts  { border-color:#4a9a6a; color:#7ad4a4; background:rgba(74,154,106,0.12); }
+.badge-label { border-color:var(--border); color:var(--muted); background:transparent; }
+.card-body { background:var(--card-bg); border:1px solid var(--border); border-top:1px solid rgba(255,255,255,0.04); padding:16px 20px; }
+.card-footer { background:var(--card-bg); border:1px solid var(--border); border-top:1px solid rgba(255,255,255,0.04); border-radius:0 0 8px 8px; padding:10px 20px; font-family:'IBM Plex Mono',monospace; font-size:0.58rem; color:var(--muted); letter-spacing:0.08em; display:flex; justify-content:space-between; }
+.section-title { font-family:'IBM Plex Mono',monospace; font-size:0.58rem; letter-spacing:0.2em; color:var(--muted); text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ── BATTING GRID ── */
+.batting-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; }
+.dice-cell { background:#0d0f14; border:1px solid var(--border); border-radius:3px; padding:5px 2px 4px; text-align:center; }
+.dice-num { font-family:'Bebas Neue',sans-serif; font-size:0.9rem; color:var(--accent-bat); line-height:1; margin-bottom:3px; }
+.dice-result { font-family:'IBM Plex Mono',monospace; font-size:0.5rem; color:var(--text); letter-spacing:0.01em; line-height:1.2; }
+.dice-alt { font-family:'IBM Plex Mono',monospace; font-size:0.45rem; color:var(--accent-bowl); margin-top:1px; }
+.res-x   { color:#c05050; }
+.res-bw  { color:#d08040; }
+.res-big { color:var(--accent-bat); }
+.res-a   { color:#8888ff; }
+.res-b   { color:#88bbff; }
+.res-c   { color:#88ddcc; }
+.res-d   { color:var(--text); }
+.res-e   { color:#aabb88; }
+.res-f   { color:#ccbb66; }
+.res-g   { color:var(--accent-bat); }
+.res-h   { color:#f0a060; }
+
+/* ── BOWLING GRID ── */
+.bowling-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; }
+.bowl-cell { background:#0d0f14; border:1px solid var(--border); border-radius:3px; padding:5px 2px 4px; text-align:center; }
+.bowl-dnum { font-family:'Bebas Neue',sans-serif; font-size:0.9rem; color:var(--accent-bowl); line-height:1; margin-bottom:3px; }
+.bowl-result { font-family:'IBM Plex Mono',monospace; font-size:0.46rem; color:var(--muted); line-height:1.3; }
+.bowl-neg    { color:#e07070; }
+.bowl-extras { color:var(--accent-bowl); }
+
+/* ── MODE BAR ── */
+.mode-bar { flex-shrink:0; background:var(--surface); border-top:2px solid var(--border); overflow:hidden; transition:height 0.32s cubic-bezier(0.4,0,0.2,1); height:40px; z-index:50; }
+.mode-bar.open { height:260px; }
+.mode-bar-header { height:40px; padding:0 20px; display:flex; align-items:center; gap:12px; cursor:pointer; user-select:none; border-bottom:1px solid transparent; transition:border-color 0.2s; }
+.mode-bar.open .mode-bar-header { border-color:var(--border); }
+.mode-bar-header:hover { background:rgba(255,255,255,0.018); }
+.mb-icon { font-size:0.9rem; opacity:0.6; }
+.mb-label { font-family:'IBM Plex Mono',monospace; font-size:0.56rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); }
+.mb-tags { display:flex; gap:5px; }
+.mb-tag { font-family:'IBM Plex Mono',monospace; font-size:0.55rem; letter-spacing:0.08em; padding:2px 7px; border-radius:10px; border:1px solid var(--border); color:var(--muted); transition:all 0.15s; }
+.mb-tag.t  { border-color:rgba(232,200,64,0.35); color:var(--accent-bat); background:rgba(232,200,64,0.06); }
+.mb-tag.o  { border-color:rgba(79,195,161,0.35);  color:var(--accent-bowl); background:rgba(79,195,161,0.06); }
+.mb-tag.m  { border-color:rgba(255,255,255,0.1); color:var(--text); }
+.mb-chevron { margin-left:auto; width:20px; height:20px; border:1px solid var(--border); border-radius:3px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:0.5rem; transition:transform 0.32s,color 0.15s,border-color 0.15s; }
+.mode-bar.open .mb-chevron { transform:rotate(180deg); color:var(--accent-bat); border-color:rgba(232,200,64,0.3); }
+.mode-bar-body { display:flex; height:220px; overflow:hidden; }
+.mb-controls { width:200px; flex-shrink:0; padding:12px 14px; border-right:1px solid var(--border); display:flex; flex-direction:column; gap:10px; overflow:hidden; }
+.mb-clabel { font-family:'IBM Plex Mono',monospace; font-size:0.5rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.mb-fmts { display:flex; gap:4px; }
+.mb-fbtn { flex:1; padding:5px 3px; background:none; border:1px solid var(--border); border-radius:3px; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:0.58rem; letter-spacing:0.04em; cursor:pointer; transition:all 0.14s; }
+.mb-fbtn:hover { color:var(--text); border-color:rgba(255,255,255,0.15); }
+.mb-fbtn.at { border-color:var(--accent-bat); color:var(--accent-bat); background:rgba(232,200,64,0.08); }
+.mb-fbtn.ao { border-color:var(--accent-bowl); color:var(--accent-bowl); background:rgba(79,195,161,0.08); }
+.mb-sel { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:3px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:0.58rem; padding:5px 22px 5px 7px; cursor:pointer; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%235a607a'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 7px center; transition:border-color 0.14s; }
+.mb-sel:focus { outline:none; border-color:rgba(232,200,64,0.4); }
+.mb-sel option { background:var(--surface); }
+.mb-legend { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+.mb-litem { display:flex; align-items:center; gap:4px; }
+.mb-ldot { width:7px; height:7px; border-radius:2px; flex-shrink:0; }
+.mb-ltext { font-family:'IBM Plex Mono',monospace; font-size:0.44rem; color:var(--muted); }
+.mb-results { flex:1; overflow-y:auto; padding:10px 14px; }
+.mb-rtitle { font-family:'IBM Plex Mono',monospace; font-size:0.52rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; display:flex; align-items:center; gap:8px; }
+.mb-rtitle::after { content:''; flex:1; height:1px; background:var(--border); }
+.mb-dlabel { color:var(--accent-bowl); font-family:'Bebas Neue',sans-serif; font-size:0.95rem; letter-spacing:0.06em; }
+.mb-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:2px; }
+.mb-row { display:flex; align-items:baseline; gap:6px; padding:3px 7px; border-radius:3px; border:1px solid var(--border); background:var(--bg); transition:border-color 0.1s; }
+.mb-row:hover { border-color:rgba(255,255,255,0.08); }
+.mb-row.rd { border-color:rgba(192,80,80,0.25); background:rgba(192,80,80,0.04); }
+.mb-row.ra { border-color:rgba(240,160,96,0.25); background:rgba(240,160,96,0.04); }
+.mb-row.rg { border-color:rgba(232,200,64,0.18); background:rgba(232,200,64,0.04); }
+.mb-key { font-family:'Bebas Neue',sans-serif; font-size:0.85rem; line-height:1; flex-shrink:0; width:40px; text-align:right; color:var(--accent-bat); }
+.mb-key.kx { color:#c05050; }
+.mb-key.kz { color:#d08040; }
+.mb-desc { font-family:'IBM Plex Mono',monospace; font-size:0.5rem; letter-spacing:0.02em; line-height:1.35; color:var(--text); }
+.r6 { color:var(--accent-bat); font-weight:600; }
+.r4 { color:#7adb9a; font-weight:600; }
+.r3 { color:#88ddcc; }
+.r2 { color:#88bbff; }
+.r1 { color:#aabb88; }
+.out { color:#e07070; font-weight:600; }
+.chart { color:#f0a060; }
+.mb-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; color:var(--muted); }
+.mb-empty-icon { font-size:1.8rem; opacity:0.18; }
+.mb-empty-text { font-family:'IBM Plex Mono',monospace; font-size:0.56rem; letter-spacing:0.1em; }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* ── REFERENCE CHARTS BAR ── */
+.ref-bar {
+  flex-shrink:0; background:var(--surface);
+  border-top:2px solid var(--border);
+  overflow:hidden;
+  transition:height 0.32s cubic-bezier(0.4,0,0.2,1);
+  height:40px; z-index:49;
+}
+.ref-bar.open { height:260px; }
+
+.ref-bar-header {
+  height:40px; padding:0 20px;
+  display:flex; align-items:center; gap:12px;
+  cursor:pointer; user-select:none;
+  border-bottom:1px solid transparent;
+  transition:border-color 0.2s;
+}
+.ref-bar.open .ref-bar-header { border-color:var(--border); }
+.ref-bar-header:hover { background:rgba(255,255,255,0.018); }
+
+.rb-icon { font-size:0.9rem; opacity:0.6; }
+.rb-label { font-family:'IBM Plex Mono',monospace; font-size:0.56rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); }
+.rb-tags  { display:flex; gap:5px; }
+.rb-tag   { font-family:'IBM Plex Mono',monospace; font-size:0.55rem; letter-spacing:0.08em; padding:2px 7px; border-radius:10px; border:1px solid var(--border); color:var(--muted); }
+.rb-tag.t { border-color:rgba(232,200,64,0.35);  color:var(--accent-bat);  background:rgba(232,200,64,0.06); }
+.rb-tag.o { border-color:rgba(79,195,161,0.35);  color:var(--accent-bowl); background:rgba(79,195,161,0.06); }
+.rb-tag.c { border-color:rgba(255,255,255,0.1);  color:var(--text); }
+
+.rb-chevron {
+  margin-left:auto; width:20px; height:20px;
+  border:1px solid var(--border); border-radius:3px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--muted); font-size:0.5rem;
+  transition:transform 0.32s, color 0.15s, border-color 0.15s;
+}
+.ref-bar.open .rb-chevron { transform:rotate(180deg); color:var(--accent-bowl); border-color:rgba(79,195,161,0.3); }
+
+.ref-bar-body { display:flex; height:220px; overflow:hidden; }
+
+.rb-controls {
+  width:200px; flex-shrink:0;
+  padding:12px 14px;
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column; gap:10px;
+}
+.rb-clabel { font-family:'IBM Plex Mono',monospace; font-size:0.5rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.rb-fmts { display:flex; gap:4px; }
+.rb-fbtn { flex:1; padding:5px 3px; background:none; border:1px solid var(--border); border-radius:3px; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:0.58rem; letter-spacing:0.04em; cursor:pointer; transition:all 0.14s; }
+.rb-fbtn:hover { color:var(--text); }
+.rb-fbtn.at { border-color:var(--accent-bat);  color:var(--accent-bat);  background:rgba(232,200,64,0.08); }
+.rb-fbtn.ao { border-color:var(--accent-bowl); color:var(--accent-bowl); background:rgba(79,195,161,0.08); }
+
+.rb-sel {
+  width:100%; background:var(--bg); border:1px solid var(--border);
+  border-radius:3px; color:var(--text); font-family:'IBM Plex Mono',monospace;
+  font-size:0.58rem; padding:5px 22px 5px 7px; cursor:pointer;
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%235a607a'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 7px center;
+}
+.rb-sel:focus { outline:none; border-color:rgba(79,195,161,0.4); }
+.rb-sel option { background:var(--surface); }
+
+.rb-legend { display:grid; grid-template-columns:1fr 1fr; gap:3px; margin-top:2px; }
+.rb-litem { display:flex; align-items:center; gap:4px; }
+.rb-ldot  { width:7px; height:7px; border-radius:2px; flex-shrink:0; }
+.rb-ltext { font-family:'IBM Plex Mono',monospace; font-size:0.44rem; color:var(--muted); }
+
+/* results */
+.rb-results { flex:1; overflow-y:auto; padding:10px 14px; }
+.rb-rtitle {
+  font-family:'IBM Plex Mono',monospace; font-size:0.52rem;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--muted);
+  margin-bottom:7px; display:flex; align-items:center; gap:8px;
+}
+.rb-rtitle::after { content:''; flex:1; height:1px; background:var(--border); }
+.rb-chart-label { color:var(--accent-bowl); font-family:'Bebas Neue',sans-serif; font-size:0.95rem; letter-spacing:0.06em; }
+
+.rb-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:2px; }
+
+.rb-row {
+  display:flex; align-items:baseline; gap:6px;
+  padding:3px 7px; border-radius:3px;
+  border:1px solid var(--border); background:var(--bg);
+  transition:border-color 0.1s;
+}
+.rb-row:hover { border-color:rgba(255,255,255,0.08); }
+.rb-row.r-out   { border-color:rgba(192,80,80,0.3);  background:rgba(192,80,80,0.05); }
+.rb-row.r-not   { border-color:rgba(79,195,161,0.2); background:rgba(79,195,161,0.04); }
+.rb-row.r-chance{ border-color:rgba(240,160,96,0.25);background:rgba(240,160,96,0.04); }
+
+.rb-dice {
+  font-family:'Bebas Neue',sans-serif; font-size:0.9rem;
+  color:var(--accent-bowl); line-height:1; flex-shrink:0; width:28px; text-align:right;
+}
+.rb-desc {
+  font-family:'IBM Plex Mono',monospace; font-size:0.5rem;
+  letter-spacing:0.02em; line-height:1.35; color:var(--text);
+}
+.rb-out   { color:#e07070; font-weight:600; }
+.rb-notout{ color:#4fc3a1; font-weight:500; }
+.rb-cval  { color:#f0a060; }
+
+.rb-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; color:var(--muted); }
+.rb-empty-icon { font-size:1.8rem; opacity:0.18; }
+.rb-empty-text { font-family:'IBM Plex Mono',monospace; font-size:0.56rem; letter-spacing:0.1em; }
+
+/* non-specific appeal panel */
+.rb-ns-panel {
+  background:var(--card-bg); border:1px solid var(--border);
+  border-radius:6px; padding:12px 16px;
+  display:flex; flex-direction:column; gap:10px;
+  max-width:440px;
+}
+.rb-ns-row { display:flex; gap:10px; }
+.rb-ns-cell {
+  flex:1; border-radius:4px; padding:8px 10px;
+  font-family:'IBM Plex Mono',monospace; font-size:0.62rem;
+  letter-spacing:0.08em; text-align:center; font-weight:600;
+}
+.rb-ns-out  { background:rgba(192,80,80,0.15); border:1px solid rgba(192,80,80,0.4); color:#e07070; }
+.rb-ns-safe { background:rgba(79,195,161,0.1);  border:1px solid rgba(79,195,161,0.3);  color:var(--accent-bowl); }
+.rb-ns-opt  { background:rgba(232,200,64,0.08); border:1px solid rgba(232,200,64,0.3); color:var(--accent-bat); font-size:0.55rem; }
+.rb-ns-note { font-family:'IBM Plex Mono',monospace; font-size:0.5rem; color:var(--muted); letter-spacing:0.04em; }
+
+/* byes table */
+.rb-byes-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:2px; max-width:340px; }
+.rb-byes-cell { background:#0d0f14; border:1px solid var(--border); border-radius:3px; padding:4px 2px; text-align:center; }
+.rb-byes-n { font-family:'Bebas Neue',sans-serif; font-size:0.8rem; color:var(--accent-bowl); line-height:1; }
+.rb-byes-v { font-family:'IBM Plex Mono',monospace; font-size:0.48rem; color:var(--text); margin-top:2px; }
+
+/* weather grid */
+.rb-weather-wrap { overflow-x:auto; }
+.rb-weather-table { border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:0.46rem; }
+.rb-weather-table th, .rb-weather-table td { border:1px solid var(--border); padding:3px 5px; text-align:center; color:var(--muted); }
+.rb-weather-table th { background:var(--card-bg); color:var(--text); }
+.rb-weather-table td:first-child { color:var(--accent-bowl); font-weight:600; }
+
+.rb-rain-table { border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:0.46rem; margin-top:8px; width:100%; }
+.rb-rain-table th, .rb-rain-table td { border:1px solid var(--border); padding:3px 6px; color:var(--muted); }
+.rb-rain-table th { background:var(--card-bg); color:var(--text); font-size:0.44rem; }
+.rb-rain-table td:first-child { color:var(--accent-bat); font-weight:600; }
+
+/* ── PWA Install Banner ── */
+.pwa-banner {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 2px solid var(--accent-bat);
+  padding: 12px 20px;
+  display: flex; align-items: center; gap: 14px;
+  z-index: 9999;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.pwa-banner-icon { font-size: 1.6rem; flex-shrink: 0; }
+.pwa-banner-text { flex: 1; }
+.pwa-banner-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1rem;
+  letter-spacing: 0.08em; color: var(--accent-bat);
+}
+.pwa-banner-sub {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.52rem;
+  color: var(--muted); letter-spacing: 0.06em; margin-top: 1px;
+}
+.pwa-install-btn {
+  background: var(--accent-bat); color: var(--bg);
+  border: none; border-radius: 4px;
+  padding: 8px 16px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+  font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  flex-shrink: 0; transition: opacity 0.15s;
+}
+.pwa-install-btn:hover { opacity: 0.85; }
+.pwa-dismiss-btn {
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  padding: 8px 10px; cursor: pointer; color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem;
+  flex-shrink: 0; transition: color 0.15s;
+}
+.pwa-dismiss-btn:hover { color: var(--text); }
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Faceless Ones</h1>
+  <div class="header-divider"></div>
+  <span class="header-tag">Lambourne Games</span>
+  <div class="header-divider"></div>
+  <span class="header-tag">Owzat Edition</span>
+  <div class="header-mode">
+    <div class="mode-pill mode-bat"><span class="mode-dot"></span>LEFT — BATTING</div>
+    <div class="mode-pill mode-bowl"><span class="mode-dot"></span>RIGHT — BOWLING</div>
+  </div>
+</header>
+
+<div class="root">
+
+  <aside class="sidebar sidebar-left" id="sidebarBat" style="position:relative">
+    <div class="sidebar-header">
+      <div class="sidebar-title bat"><span class="sidebar-title-dot"></span>Batting Cards</div>
+      <button class="collapse-btn" id="collapseBat">◀</button>
+    </div>
+    <div class="sidebar-scroll" id="batList"></div>
+    <div class="sidebar-tab" onclick="toggleSidebar('bat')">🏏 BATTING</div>
+  </aside>
+
+  <main class="centre">
+    <div class="slot-empty bat-slot" id="emptyBat">
+      <div class="slot-icon">🏏</div>
+      <div class="slot-label">Batting Card</div>
+      <div class="slot-sub">Pick a VP card<br>from the left</div>
+    </div>
+    <div class="slot-empty bowl-slot" id="emptyBowl">
+      <div class="slot-icon">🎳</div>
+      <div class="slot-label">Bowling Card</div>
+      <div class="slot-sub">Pick a card<br>from the right</div>
+    </div>
+    <div class="card-wrap" id="batCard" style="display:none"></div>
+    <div class="card-wrap" id="bowlCard" style="display:none"></div>
+  </main>
+
+  <aside class="sidebar sidebar-right" id="sidebarBowl" style="position:relative">
+    <div class="sidebar-header">
+      <button class="collapse-btn" id="collapseBowl">▶</button>
+      <div class="sidebar-title bowl"><span class="sidebar-title-dot"></span>Bowling Cards</div>
+    </div>
+    <div class="sidebar-scroll" id="bowlList"></div>
+    <div class="sidebar-tab" onclick="toggleSidebar('bowl')">🎳 BOWLING</div>
+  </aside>
+
+</div>
+
+<!-- MODE REFERENCE BAR -->
+<div class="mode-bar" id="modeBar">
+  <div class="mode-bar-header" id="mbToggle">
+    <span class="mb-icon">🎯</span>
+    <span class="mb-label">Mode Reference</span>
+    <div class="mb-tags">
+      <span class="mb-tag t" id="mbFmtTag">TEST</span>
+      <span class="mb-tag m" id="mbModeTag">Normal</span>
+      <span class="mb-tag" id="mbDelTag" style="display:none"></span>
+    </div>
+    <div class="mb-chevron" id="mbChevron">▲</div>
+  </div>
+  <div class="mode-bar-body">
+    <div class="mb-controls">
+      <div>
+        <div class="mb-clabel">Format</div>
+        <div class="mb-fmts">
+          <button class="mb-fbtn at" id="mbBtnTest" data-fmt="test">Test</button>
+          <button class="mb-fbtn"    id="mbBtnOdi"  data-fmt="odi">ODI</button>
+        </div>
+      </div>
+      <div>
+        <div class="mb-clabel">Batting Mode</div>
+        <select class="mb-sel" id="mbModeSelect"></select>
+      </div>
+      <div>
+        <div class="mb-clabel">Delivery Type</div>
+        <select class="mb-sel" id="mbDelSelect">
+          <option value="">— pick delivery —</option>
+          <option>SHORT</option>
+          <option>GOOD LENGTH</option>
+          <option>OVERPITCHED</option>
+          <option>YORKER</option>
+          <option>BOUNCER</option>
+          <option>SWING</option>
+          <option>LIFT</option>
+          <option>MOVEMENT OFF PITCH</option>
+          <option>WELL-FLIGHTED</option>
+          <option>LONG HOP</option>
+          <option>FULL TOSS</option>
+          <option>TURN</option>
+        </select>
+      </div>
+      <div>
+        <div class="mb-clabel">Legend</div>
+        <div class="mb-legend">
+          <div class="mb-litem"><div class="mb-ldot" style="background:#e07070"></div><span class="mb-ltext">Dismissal</span></div>
+          <div class="mb-litem"><div class="mb-ldot" style="background:#f0a060"></div><span class="mb-ltext">Appeal</span></div>
+          <div class="mb-litem"><div class="mb-ldot" style="background:var(--accent-bat)"></div><span class="mb-ltext">6 runs</span></div>
+          <div class="mb-litem"><div class="mb-ldot" style="background:#7adb9a"></div><span class="mb-ltext">4 runs</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="mb-results" id="mbResults">
+      <div class="mb-empty">
+        <div class="mb-empty-icon">🎯</div>
+        <div class="mb-empty-text">Select format · mode · delivery</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ref-bar" id="refBar">
+  <div class="ref-bar-header" id="rbToggle">
+    <span class="rb-icon">📋</span>
+    <span class="rb-label">Reference Charts</span>
+    <div class="rb-tags">
+      <span class="rb-tag t" id="rbFmtTag">TEST</span>
+      <span class="rb-tag c" id="rbChartTag">Select chart</span>
+    </div>
+    <div class="rb-chevron" id="rbChevron">▲</div>
+  </div>
+  <div class="ref-bar-body">
+    <div class="rb-controls">
+      <div>
+        <div class="rb-clabel">Format</div>
+        <div class="rb-fmts">
+          <button class="rb-fbtn at" id="rbBtnTest" data-fmt="test">Test</button>
+          <button class="rb-fbtn"    id="rbBtnOdi"  data-fmt="odi">ODI</button>
+        </div>
+      </div>
+      <div>
+        <div class="rb-clabel">Chart</div>
+        <select class="rb-sel" id="rbChartSelect">
+          <option value="">— select chart —</option>
+        </select>
+      </div>
+      <div>
+        <div class="rb-clabel">Colour Key</div>
+        <div class="rb-legend">
+          <div class="rb-litem"><div class="rb-ldot" style="background:#e07070"></div><span class="rb-ltext">OUT / Bowled</span></div>
+          <div class="rb-litem"><div class="rb-ldot" style="background:#4fc3a1"></div><span class="rb-ltext">NOT OUT</span></div>
+          <div class="rb-litem"><div class="rb-ldot" style="background:#f0a060"></div><span class="rb-ltext">Chance / Appeal</span></div>
+          <div class="rb-litem"><div class="rb-ldot" style="background:var(--border)"></div><span class="rb-ltext">Neutral</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="rb-results" id="rbResults">
+      <div class="rb-empty">
+        <div class="rb-empty-icon">📋</div>
+        <div class="rb-empty-text">Select format &amp; chart</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── PWA Install Banner ── -->
+<div class="pwa-banner" id="pwaBanner" style="display:none">
+  <span class="pwa-banner-icon">🏏</span>
+  <div class="pwa-banner-text">
+    <div class="pwa-banner-title">Install Cricket Cards</div>
+    <div class="pwa-banner-sub">Add to home screen for offline access</div>
+  </div>
+  <button class="pwa-install-btn" id="pwaInstallBtn">Install</button>
+  <button class="pwa-dismiss-btn" id="pwaDismissBtn">✕</button>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// BATTING DATA
+// ─────────────────────────────────────────────────────────────────────────────
+const BATTER_GROUPS = {
+  "Tail-enders": [
+    { id:"VP4",  desc:"Very much a non-batsman",               stats:"3.99 / 19.09",
+      batting:{2:["C",""],3:["E","F"],4:["X",""],5:["D",""],6:["F",""],7:["X",""],8:["G","H"],9:["E",""],10:["H",""],11:["D",""],12:["[BW] B",""]} },
+    { id:"VP6",  desc:"Tail-ender, a lifelong number 11",       stats:"5.84 / 21.21",
+      batting:{2:["B",""],3:["[BW] C",""],4:["X",""],5:["X",""],6:["D",""],7:["F",""],8:["E",""],9:["F",""],10:["E",""],11:["H","X"],12:["G","H"]} },
+    { id:"VP7",  desc:"Tail-ender who thinks he can bat a bit", stats:"7.08 / 25.73",
+      batting:{2:["X",""],3:["B","C"],4:["E",""],5:["E",""],6:["[BW] D",""],7:["X",""],8:["F",""],9:["E","F"],10:["C",""],11:["H","X"],12:["G",""]} },
+    { id:"VP8",  desc:"Capable of holding an end up",           stats:"8.04 / 25.54",
+      batting:{2:["C","E"],3:["H","X"],4:["F",""],5:["E",""],6:["D",""],7:["X",""],8:["[BW] C",""],9:["F",""],10:["E",""],11:["G",""],12:["B","C"]} },
+    { id:"VP9",  desc:"Hard-swinging tail-ender",               stats:"9.22 / 30.36",
+      batting:{2:["X",""],3:["[BW] B",""],4:["D",""],5:["C",""],6:["F","G"],7:["X",""],8:["E",""],9:["D",""],10:["E",""],11:["G","H"],12:["BIG HIT","X"]} },
+    { id:"VP10", desc:"Dogged tail-ender",                      stats:"10.37 / 26.15",
+      batting:{2:["H","X"],3:["G","H"],4:["D",""],5:["[BW] C",""],6:["X",""],7:["F",""],8:["E",""],9:["D",""],10:["E",""],11:["D",""],12:["B","D"]} },
+    { id:"VP11", desc:"Dogged tail-ender",                      stats:"",
+      batting:{2:["C",""],3:["G",""],4:["E",""],5:["F",""],6:["C",""],7:["X",""],8:["B","F"],9:["[BW] D",""],10:["E","H"],11:["H",""],12:["B","D"]} },
+  ],
+  "Lower Order": [
+    { id:"VP12", desc:"Attacking lower-order batsman",          stats:"11.34 / 36.03",
+      batting:{2:["G",""],3:["F","G"],4:["BIG HIT","X"],5:["E",""],6:["C",""],7:["X",""],8:["C",""],9:["D",""],10:["H",""],11:["B","D"],12:["D",""]} },
+    { id:"VP13", desc:"Dogged lower-order batsman",             stats:"13.65 / 30.63",
+      batting:{2:["G","X"],3:["[BW] B",""],4:["D",""],5:["X",""],6:["C","E"],7:["E",""],8:["D",""],9:["F",""],10:["D",""],11:["H",""],12:["D","F"]} },
+    { id:"VP15", desc:"Hard-hitting lower-order batsman",       stats:"15.00 / 38.38",
+      batting:{2:["BIG HIT",""],3:["G",""],4:["[BW] B",""],5:["E",""],6:["X",""],7:["D",""],8:["C",""],9:["F",""],10:["E","F"],11:["A","D"],12:["H","X"]} },
+    { id:"VP16", desc:"Steady lower-order batsman",             stats:"16.06 / 32.94",
+      batting:{2:["G","H"],3:["F","G"],4:["E",""],5:["X",""],6:["E",""],7:["D",""],8:["C",""],9:["[BW] B",""],10:["F",""],11:["F","H"],12:["H",""]} },
+    { id:"VP18", desc:"Solid if restricted batsman",            stats:"17.50 / 31.17",
+      batting:{2:["A","E"],3:["H",""],4:["X",""],5:["D",""],6:["E",""],7:["E",""],8:["F",""],9:["D",""],10:["[BW] C",""],11:["B","F"],12:["G",""]} },
+    { id:"VP19", desc:"Stroke-player, but defence poor",        stats:"19.30 / 38.23",
+      batting:{2:["C",""],3:["[BW] A",""],4:["X",""],5:["B","E"],6:["C",""],7:["F",""],8:["D",""],9:["E","H"],10:["H",""],11:["G",""],12:["C","F"]} },
+    { id:"VP20", desc:"Big-hitter",                             stats:"20.04 / 43.55",
+      batting:{2:["H",""],3:["B","F"],4:["D",""],5:["X",""],6:["F",""],7:["E",""],8:["[BW] C",""],9:["D",""],10:["BIG HIT","H"],11:["G",""],12:["A","E"]} },
+  ],
+  "Middle Order": [
+    { id:"VP22", desc:"Solid defensive batsman",                stats:"22.06 / 33.33",
+      batting:{2:["A","D"],3:["X",""],4:["D",""],5:["E",""],6:["[BW] C",""],7:["E",""],8:["D","F"],9:["F",""],10:["H",""],11:["B",""],12:["G","X"]} },
+    { id:"VP24", desc:"Competent middle-order batsman",         stats:"24.97 / 55.05",
+      batting:{2:["H",""],3:["A","D"],4:["X",""],5:["[BW] B",""],6:["E",""],7:["D",""],8:["F",""],9:["C","F"],10:["D",""],11:["E",""],12:["G",""]} },
+    { id:"VP25", desc:"Middle-order batsman",                   stats:"24.02 / 38.15",
+      batting:{2:["G",""],3:["A","D"],4:["E",""],5:["X",""],6:["[BW] B",""],7:["D",""],8:["C",""],9:["BIG HIT","C"],10:["F",""],11:["C",""],12:["H","X"]} },
+    { id:"VP26", desc:"Hard-hitting, defence poor",             stats:"26.10 / 46.48",
+      batting:{2:["A",""],3:["F","G"],4:["X",""],5:["D",""],6:["E",""],7:["C",""],8:["[BW] B",""],9:["A","D"],10:["F",""],11:["H",""],12:["G","H"]} },
+    { id:"VP27", desc:"Useful, defensive-minded batsman",       stats:"26.99 / 35.37",
+      batting:{2:["A","E"],3:["X",""],4:["[BW] B",""],5:["D",""],6:["C",""],7:["E",""],8:["F",""],9:["D","F"],10:["D",""],11:["H",""],12:["G","H"]} },
+    { id:"VP28", desc:"Solid middle-order grafter",             stats:"28.01 / 36.92",
+      batting:{2:["A","C"],3:["X",""],4:["[BW] B",""],5:["E",""],6:["D",""],7:["C",""],8:["D",""],9:["E",""],10:["F","G"],11:["H",""],12:["G","H"]} },
+    { id:"VP29", desc:"Aggressive batsman",                     stats:"29.24 / 56.59",
+      batting:{2:["C",""],3:["H",""],4:["X",""],5:["F",""],6:["[BW] B",""],7:["C",""],8:["E",""],9:["BIG HIT","C"],10:["A","D"],11:["D",""],12:["G","H"]} },
+    { id:"VP30", desc:"Competent, stroke-playing batsman",      stats:"30.15 / 45.37",
+      batting:{2:["C",""],3:["X",""],4:["A",""],5:["E","F"],6:["[BW] B",""],7:["D",""],8:["C","E"],9:["F",""],10:["H","X"],11:["C",""],12:["D",""]} },
+    { id:"VP32", desc:"Attacking batsman",                      stats:"32.19 / 50.92",
+      batting:{2:["B",""],3:["A",""],4:["X",""],5:["F",""],6:["C",""],7:["B","E"],8:["D",""],9:["E",""],10:["[BW] C",""],11:["A","D"],12:["H","X"]} },
+  ],
+  "Upper Middle": [
+    { id:"VP35", desc:"Solid batsman",                          stats:"35.14 / 46.10",
+      batting:{2:["E","G"],3:["X",""],4:["D",""],5:["D",""],6:["[BW] B",""],7:["C",""],8:["D",""],9:["E",""],10:["A","C"],11:["H",""],12:["F","H"]} },
+    { id:"VP36", desc:"Good defensive batsman",                 stats:"36.07 / 40.58",
+      batting:{2:["H",""],3:["X",""],4:["[BW] A",""],5:["E","F"],6:["D",""],7:["C",""],8:["E",""],9:["F",""],10:["B","D"],11:["D",""],12:["G","H"]} },
+    { id:"VP38", desc:"Big-hitting, aggressive batsman",        stats:"38.72 / 59.99",
+      batting:{2:["G","X"],3:["C",""],4:["X",""],5:["[BW] BIG HIT",""],6:["C",""],7:["B","E"],8:["D",""],9:["E",""],10:["A","D"],11:["F","G"],12:["F",""]} },
+    { id:"VP39", desc:"Very solid all-round batsman",           stats:"39.10 / 44.25",
+      batting:{2:["H",""],3:["X",""],4:["F",""],5:["[BW] B",""],6:["C","D"],7:["D",""],8:["D",""],9:["E","F"],10:["A","E"],11:["G",""],12:["A",""]} },
+    { id:"VP40", desc:"Hard-hitting batsman",                   stats:"40.61 / 48.57",
+      batting:{2:["H","X"],3:["X",""],4:["[BW] A",""],5:["E",""],6:["D",""],7:["E",""],8:["C",""],9:["B",""],10:["F","G"],11:["BIG HIT",""],12:["F",""]} },
+    { id:"VP41", desc:"Good, stroke-playing batsman",           stats:"41.49 / 47.22",
+      batting:{2:["H","X"],3:["X",""],4:["G",""],5:["D",""],6:["D","E"],7:["C",""],8:["B","D"],9:["[BW] A",""],10:["E",""],11:["D",""],12:["F",""]} },
+    { id:"VP43", desc:"Solid, well-organised batsman",          stats:"42.59 / 47.91",
+      batting:{2:["H","X"],3:["X",""],4:["D",""],5:["D",""],6:["E",""],7:["C",""],8:["B","E"],9:["C",""],10:["[BW] A",""],11:["F",""],12:["G","H"]} },
+    { id:"VP44", desc:"Strong, defensively-minded batsman",     stats:"43.92 / 46.02",
+      batting:{2:["X",""],3:["F",""],4:["[BW] A",""],5:["C",""],6:["E",""],7:["C",""],8:["D",""],9:["B","F"],10:["H","X"],11:["D",""],12:["G",""]} },
+    { id:"VP45", desc:"Attacking batsman",                      stats:"45.00 / 50.34",
+      batting:{2:["H","X"],3:["X",""],4:["[BW] A",""],5:["D",""],6:["B","E"],7:["E",""],8:["C",""],9:["D",""],10:["F","G"],11:["B",""],12:["A","C"]} },
+  ],
+  "Top Order": [
+    { id:"VP47", desc:"Aggressive, hard-hitting batsman",       stats:"46.90 / 57.90",
+      batting:{2:["E",""],3:["X",""],4:["C",""],5:["F",""],6:["[BW] A",""],7:["D",""],8:["B","D"],9:["E",""],10:["BIG HIT","F"],11:["C",""],12:["H","X"]} },
+    { id:"VP48", desc:"Fine, stroke-playing batsman",           stats:"48.37 / 54.12",
+      batting:{2:["C",""],3:["X",""],4:["B","E"],5:["[BW] B",""],6:["A",""],7:["C",""],8:["D",""],9:["E",""],10:["D",""],11:["F","G"],12:["H","X"]} },
+    { id:"VP49", desc:"Sheet-anchor type",                      stats:"49.17 / 42.36",
+      batting:{2:["X",""],3:["H",""],4:["A","C"],5:["F",""],6:["E",""],7:["C","E"],8:["D",""],9:["[BW] B",""],10:["E",""],11:["G","H"],12:["D",""]} },
+    { id:"VP51", desc:"Very defensive batsman",                 stats:"51.41 / 33.71",
+      batting:{2:["X",""],3:["A","C"],4:["[BW] C",""],5:["E",""],6:["E",""],7:["D",""],8:["F",""],9:["F","G"],10:["E",""],11:["B",""],12:["H",""]} },
+    { id:"VP54", desc:"Good attacking batsman",                 stats:"53.97 / 50.30",
+      batting:{2:["G","X"],3:["X",""],4:["C","E"],5:["A",""],6:["E",""],7:["D",""],8:["[BW] B",""],9:["C","F"],10:["C",""],11:["F","H"],12:["D","E"]} },
+    { id:"VP57", desc:"Hard-hitting batsman",                   stats:"56.91 / 57.44",
+      batting:{2:["G","X"],3:["X",""],4:["F",""],5:["[BW] A",""],6:["B","D"],7:["E",""],8:["D",""],9:["C",""],10:["B",""],11:["BIG HIT","E"],12:["F",""]} },
+    { id:"VP58", desc:"Good, stroke-playing batsman",           stats:"58.40 / 55.20",
+      batting:{2:["D",""],3:["X",""],4:["B","C"],5:["[BW] A",""],6:["B","D"],7:["C",""],8:["D",""],9:["C",""],10:["G",""],11:["F","H"],12:["D",""]} },
+    { id:"VP60", desc:"Fine attacking batsman",                 stats:"60.09 / 56.01",
+      batting:{2:["G","H"],3:["X",""],4:["B",""],5:["D",""],6:["[BW] A",""],7:["C",""],8:["B","E"],9:["D",""],10:["E",""],11:["F","G"],12:["C",""]} },
+    { id:"VP63", desc:"Excellent bat, if slightly cautious",    stats:"62.81 / 53.31",
+      batting:{2:["X",""],3:["H",""],4:["B","E"],5:["[BW] A",""],6:["D",""],7:["C",""],8:["D",""],9:["C",""],10:["B","C"],11:["E","G"],12:["F",""]} },
+    { id:"VP67", desc:"Top class batsman",                      stats:"66.51 / 56.86",
+      batting:{2:["X",""],3:["H","X"],4:["D",""],5:["[BW] A",""],6:["B",""],7:["C",""],8:["D",""],9:["C",""],10:["B","E"],11:["E",""],12:["G","H"]} },
+    { id:"VP70", desc:"Top quality batsman",                    stats:"70.17 / 46.02",
+      batting:{2:["X",""],3:["C",""],4:["[BW] A",""],5:["E",""],6:["B","D"],7:["D",""],8:["E",""],9:["C",""],10:["F","G"],11:["D",""],12:["H","X"]} },
+    { id:"VP76", desc:"Excellent defensive batsman",            stats:"76.23 / 50.00",
+      batting:{2:["X",""],3:["C",""],4:["A","D"],5:["E",""],6:["[BW] B",""],7:["C",""],8:["E",""],9:["C","F"],10:["D",""],11:["F","G"],12:["H","X"]} },
+    { id:"VP81", desc:"Top class run-accumulator",              stats:"80.94 / 53.08",
+      batting:{2:["X",""],3:["D",""],4:["B",""],5:["[BW] A",""],6:["C",""],7:["D",""],8:["C",""],9:["E",""],10:["B","E"],11:["F","G"],12:["H","X"]} },
+  ]
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOWLING DATA
+// ─────────────────────────────────────────────────────────────────────────────
+const BOWLER_GROUPS = {
+  "Fast (F)": [
+    { id:"F22",  desc:"Swings ball late",          stats:"85 wkts / 2.23 econ / 30.17 avg",
+      rows:{2:"FULL TOSS",3:"YORKER [-1]",4:"BOUNCER",5:"SHORT",6:"SWING",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"OVERPITCHED",10:"SWING [-2]",11:"GOOD LENGTH [-1]",12:"EXTRAS +1"} },
+    { id:"F24",  desc:"Lift & movement off seam",  stats:"60 wkts / 2.36 econ / 23.60 avg",
+      rows:{2:"YORKER [-2]",3:"BOUNCER",4:"GOOD LENGTH",5:"MOVEMENT OFF PITCH [-1]",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"MOVEMENT OFF PITCH",11:"LIFT [-2]",12:"EXTRAS +3"} },
+    { id:"F27",  desc:"Fast but erratic",           stats:"55 wkts / 2.92 econ / 26.76 avg",
+      rows:{2:"FULL TOSS",3:"LIFT [-2]",4:"BOUNCER [-1]",5:"SHORT",6:"GOOD LENGTH [-1]",7:"OVERPITCHED",8:"GOOD LENGTH",9:"MOVEMENT OFF PITCH",10:"GOOD LENGTH",11:"SHORT",12:"EXTRAS +6"} },
+    { id:"F28",  desc:"Dangerous but erratic",      stats:"",
+      rows:{2:"LIFT [-3]",3:"BOUNCER [-1]",4:"SWING",5:"SHORT",6:"GOOD LENGTH [-1]",7:"OVERPITCHED",8:"GOOD LENGTH",9:"SHORT",10:"GOOD LENGTH",11:"LIFT [-1]",12:"EXTRAS +4"} },
+    { id:"F29",  desc:"Fast but wild",              stats:"55 wkts / 3.00 econ / 27.49 avg",
+      rows:{2:"YORKER [-2]",3:"LONG HOP",4:"MOVEMENT OFF PITCH [-1]",5:"BOUNCER",6:"SHORT",7:"OVERPITCHED",8:"GOOD LENGTH",9:"LIFT [-1]",10:"GOOD LENGTH [-1]",11:"SHORT",12:"EXTRAS +6"} },
+    { id:"F30",  desc:"Accurate swing bowler",      stats:"55 wkts / 3.26 econ / 29.88 avg",
+      rows:{2:"YORKER [-1]",3:"BOUNCER",4:"GOOD LENGTH",5:"SWING",6:"OVERPITCHED",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"SHORT",10:"GOOD LENGTH",11:"SWING [-2]",12:"EXTRAS +2"} },
+    { id:"F31",  desc:"Very fast and very wild",    stats:"",
+      rows:{2:"GOOD LENGTH",3:"FULL TOSS",4:"GOOD LENGTH",5:"MOVEMENT OFF PITCH [-1]",6:"OVERPITCHED",7:"SHORT",8:"GOOD LENGTH",9:"BOUNCER [-1]",10:"OVERPITCHED",11:"LIFT [-2]",12:"EXTRAS +5"} },
+    { id:"F34",  desc:"Seam bowler",                stats:"60 wkts / 2.24 econ / 22.40 avg",
+      rows:{2:"LIFT",3:"MOVEMENT OFF PITCH [-1]",4:"GOOD LENGTH",5:"LIFT [-1]",6:"SHORT",7:"OVERPITCHED",8:"GOOD LENGTH",9:"BOUNCER",10:"MOVEMENT OFF PITCH",11:"GOOD LENGTH",12:"EXTRAS +4"} },
+    { id:"F36",  desc:"Seam bowler",                stats:"75 wkts / 2.85 econ / 35.62 avg",
+      rows:{2:"MOVEMENT OFF PITCH",3:"LIFT",4:"GOOD LENGTH [-1]",5:"MOVEMENT OFF PITCH [-1]",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"SHORT",11:"BOUNCER",12:"EXTRAS +4"} },
+  ],
+  "Fast-Medium (FM)": [
+    { id:"FM20", desc:"Swings the ball very late",  stats:"60 wkts / 2.01 econ / 20.10 avg",
+      rows:{2:"FULL TOSS",3:"YORKER [-1]",4:"OVERPITCHED",5:"SWING [-2]",6:"GOOD LENGTH",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"SHORT",10:"SWING",11:"BOUNCER",12:"EXTRAS +3"} },
+    { id:"FM25", desc:"Swing and lift",             stats:"65 wkts / 2.36 econ / 25.56 avg",
+      rows:{2:"FULL TOSS",3:"BOUNCER",4:"GOOD LENGTH [-1]",5:"SWING [-2]",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"LIFT",11:"SWING",12:"EXTRAS +5"} },
+    { id:"FM26", desc:"Swing bowler",               stats:"57 wkts / 2.60 econ / 24.70 avg",
+      rows:{2:"BOUNCER",3:"SWING [-1]",4:"GOOD LENGTH [-1]",5:"SWING [-1]",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"GOOD LENGTH",11:"MOVEMENT OFF PITCH",12:"EXTRAS +2"} },
+    { id:"FM27", desc:"Hostile seam bowler",        stats:"55 wkts / 3.00 econ / 27.49 avg",
+      rows:{2:"LIFT [-3]",3:"GOOD LENGTH",4:"MOVEMENT OFF PITCH [-2]",5:"SHORT",6:"MOVEMENT OFF PITCH",7:"OVERPITCHED",8:"GOOD LENGTH",9:"SHORT",10:"BOUNCER [-1]",11:"LIFT",12:"EXTRAS +5"} },
+    { id:"FM30", desc:"Swing bowler",               stats:"75 wkts / 2.36 econ / 29.50 avg",
+      rows:{2:"BOUNCER",3:"SWING",4:"GOOD LENGTH",5:"MOVEMENT OFF PITCH",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH [-1]",10:"SWING [-1]",11:"GOOD LENGTH",12:"EXTRAS +2"} },
+    { id:"FM32", desc:"Late swing",                 stats:"65 wkts / 2.92 econ / 31.63 avg",
+      rows:{2:"FULL TOSS",3:"BOUNCER",4:"SWING [-2]",5:"SHORT",6:"GOOD LENGTH",7:"OVERPITCHED",8:"GOOD LENGTH",9:"SWING",10:"GOOD LENGTH [-1]",11:"SHORT",12:"EXTRAS +1"} },
+    { id:"FM34", desc:"Seam bowler",                stats:"57 wkts / 3.60 econ / 34.20 avg",
+      rows:{2:"LIFT [-2]",3:"LONG HOP",4:"BOUNCER [-1]",5:"GOOD LENGTH",6:"SHORT",7:"OVERPITCHED",8:"GOOD LENGTH",9:"SHORT",10:"MOVEMENT OFF PITCH [-2]",11:"MOVEMENT OFF PITCH",12:"EXTRAS +6"} },
+    { id:"FM38", desc:"Lift and movement off seam", stats:"75 wkts / 3.00 econ / 37.50 avg",
+      rows:{2:"LIFT [-1]",3:"MOVEMENT OFF PITCH",4:"BOUNCER",5:"SHORT",6:"GOOD LENGTH",7:"OVERPITCHED",8:"GOOD LENGTH",9:"SHORT",10:"GOOD LENGTH [-2]",11:"MOVEMENT OFF PITCH",12:"EXTRAS +3"} },
+    { id:"FM44", desc:"Seam bowler",                stats:"85 wkts / 3.14 econ / 44.48 avg",
+      rows:{2:"YORKER [-1]",3:"FULL TOSS",4:"BOUNCER",5:"SHORT",6:"GOOD LENGTH",7:"OVERPITCHED",8:"GOOD LENGTH",9:"MOVEMENT OFF PITCH [-1]",10:"GOOD LENGTH",11:"SHORT",12:"EXTRAS +3"} },
+  ],
+  "Medium (M)": [
+    { id:"M24",  desc:"Swings the ball both ways",  stats:"67 wkts / 2.13 econ / 23.78 avg",
+      rows:{2:"GOOD LENGTH",3:"MOVEMENT OFF PITCH",4:"SWING [-1]",5:"SWING",6:"OVERPITCHED",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"SHORT",10:"SWING [-2]",11:"GOOD LENGTH [-1]",12:"EXTRAS +3"} },
+    { id:"M26",  desc:"Lift and movement off seam", stats:"92 wkts / 1.90 econ / 29.13 avg",
+      rows:{2:"FULL TOSS",3:"LIFT",4:"SWING",5:"GOOD LENGTH",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH [-1]",10:"SWING [-1]",11:"MOVEMENT OFF PITCH [-1]",12:"EXTRAS +3"} },
+    { id:"M29",  desc:"Very accurate",              stats:"59 wkts / 2.60 econ / 25.56 avg",
+      rows:{2:"MOVEMENT OFF PITCH",3:"SWING [-1]",4:"GOOD LENGTH [-1]",5:"SHORT",6:"GOOD LENGTH",7:"GOOD LENGTH",8:"SWING",9:"OVERPITCHED",10:"GOOD LENGTH",11:"GOOD LENGTH",12:"EXTRAS +1"} },
+    { id:"M33",  desc:"Steady swing bowler",        stats:"92 wkts / 2.13 econ / 32.65 avg",
+      rows:{2:"GOOD LENGTH [-1]",3:"SWING",4:"GOOD LENGTH",5:"SWING [-1]",6:"OVERPITCHED",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"SHORT",10:"GOOD LENGTH",11:"MOVEMENT OFF PITCH",12:"EXTRAS +2"} },
+    { id:"M34",  desc:"Seam bowler",                stats:"87 wkts / 2.36 econ / 34.22 avg",
+      rows:{2:"LIFT [-1]",3:"GOOD LENGTH [-1]",4:"MOVEMENT OFF PITCH [-1]",5:"GOOD LENGTH",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"GOOD LENGTH",11:"MOVEMENT OFF PITCH",12:"EXTRAS +4"} },
+    { id:"M37",  desc:"Seam bowler",                stats:"71 wkts / 3.14 econ / 37.15 avg",
+      rows:{2:"YORKER",3:"FULL TOSS",4:"MOVEMENT OFF PITCH [-2]",5:"SHORT",6:"GOOD LENGTH",7:"OVERPITCHED",8:"GOOD LENGTH",9:"MOVEMENT OFF PITCH [-1]",10:"SWING",11:"SHORT",12:"EXTRAS +2"} },
+    { id:"M40",  desc:"Seam bowler",                stats:"80 wkts / 3.00 econ / 39.99 avg",
+      rows:{2:"YORKER",3:"SWING",4:"MOVEMENT OFF PITCH [-1]",5:"SHORT",6:"GOOD LENGTH",7:"OVERPITCHED",8:"GOOD LENGTH [-1]",9:"SHORT",10:"GOOD LENGTH",11:"GOOD LENGTH",12:"EXTRAS +2"} },
+    { id:"M45",  desc:"Swing bowler",               stats:"107 wkts / 2.52 econ / 44.93 avg",
+      rows:{2:"SWING",3:"GOOD LENGTH",4:"SWING [-1]",5:"GOOD LENGTH",6:"SHORT",7:"OVERPITCHED",8:"GOOD LENGTH",9:"SWING",10:"GOOD LENGTH",11:"GOOD LENGTH",12:"EXTRAS +3"} },
+    { id:"M51",  desc:"Up and downer",              stats:"107 wkts / 2.85 econ / 50.82 avg",
+      rows:{2:"MOVEMENT OFF PITCH [-1]",3:"GOOD LENGTH [-1]",4:"GOOD LENGTH",5:"MOVEMENT OFF PITCH",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"SHORT",11:"GOOD LENGTH",12:"EXTRAS +1"} },
+  ],
+  "Finger-Spin (FS)": [
+    { id:"FS26", desc:"Deceptive through the air",  stats:"59 wkts / 2.60 econ / 25.56 avg",
+      rows:{2:"FULL TOSS",3:"WELL-FLIGHTED [-1]",4:"GOOD LENGTH [-1]",5:"WELL-FLIGHTED [-2]",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"WELL-FLIGHTED",11:"TURN",12:"EXTRAS +2"} },
+    { id:"FS28", desc:"Biting spinner",             stats:"83 wkts / 2.13 econ / 29.46 avg",
+      rows:{2:"WELL-FLIGHTED",3:"TURN [-2]",4:"GOOD LENGTH",5:"GOOD LENGTH [-1]",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"TURN",10:"GOOD LENGTH",11:"WELL-FLIGHTED [-1]",12:"EXTRAS +2"} },
+    { id:"FS29", desc:"Accurate spinner",           stats:"71 wkts / 2.36 econ / 27.92 avg",
+      rows:{2:"SWING",3:"GOOD LENGTH",4:"GOOD LENGTH [-1]",5:"TURN [-1]",6:"OVERPITCHED",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"SHORT",10:"TURN",11:"GOOD LENGTH",12:"EXTRAS +4"} },
+    { id:"FS31", desc:"Very economical spinner",    stats:"107 wkts / 1.75 econ / 31.20 avg",
+      rows:{2:"TURN [-1]",3:"GOOD LENGTH [-1]",4:"TURN",5:"SHORT",6:"GOOD LENGTH",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"GOOD LENGTH",10:"OVERPITCHED",11:"GOOD LENGTH",12:"EXTRAS +1"} },
+    { id:"FS34", desc:"Flighty and accurate",       stats:"107 wkts / 1.90 econ / 33.88 avg",
+      rows:{2:"YORKER",3:"GOOD LENGTH",4:"WELL-FLIGHTED [-1]",5:"SHORT",6:"GOOD LENGTH",7:"WELL-FLIGHTED",8:"GOOD LENGTH",9:"OVERPITCHED",10:"GOOD LENGTH",11:"SWING",12:"EXTRAS +4"} },
+    { id:"FS36", desc:"Deceptive through the air",  stats:"80 wkts / 2.68 econ / 35.73 avg",
+      rows:{2:"LIFT [-1]",3:"OVERPITCHED",4:"WELL-FLIGHTED",5:"OVERPITCHED",6:"GOOD LENGTH",7:"SHORT",8:"GOOD LENGTH",9:"WELL-FLIGHTED [-1]",10:"GOOD LENGTH [-1]",11:"TURN",12:"EXTRAS +4"} },
+    { id:"FS37", desc:"Turns ball sharply",         stats:"83 wkts / 2.68 econ / 37.07 avg",
+      rows:{2:"WELL-FLIGHTED",3:"OVERPITCHED",4:"GOOD LENGTH [-1]",5:"OVERPITCHED",6:"GOOD LENGTH",7:"SHORT",8:"GOOD LENGTH",9:"GOOD LENGTH",10:"TURN",11:"TURN [-2]",12:"EXTRAS +1"} },
+    { id:"FS41", desc:"Dangerous but inaccurate",   stats:"80 wkts / 3.07 econ / 40.93 avg",
+      rows:{2:"LONG HOP",3:"TURN [-1]",4:"WELL-FLIGHTED [-2]",5:"TURN",6:"SHORT",7:"OVERPITCHED",8:"GOOD LENGTH",9:"GOOD LENGTH",10:"WELL-FLIGHTED",11:"OVERPITCHED",12:"EXTRAS +2"} },
+    { id:"FS45", desc:"Extracts bounce from pitch", stats:"92 wkts / 2.92 econ / 44.77 avg",
+      rows:{2:"FULL TOSS",3:"LIFT [-1]",4:"WELL-FLIGHTED",5:"SHORT",6:"GOOD LENGTH",7:"OVERPITCHED",8:"GOOD LENGTH",9:"TURN",10:"GOOD LENGTH [-1]",11:"SHORT",12:"EXTRAS +3"} },
+  ],
+  "Wrist-Spin (WS)": [
+    { id:"WS23", desc:"Turn and bounce",            stats:"56 wkts / 2.52 econ / 23.51 avg",
+      rows:{2:"LIFT [-1]",3:"WELL-FLIGHTED",4:"TURN [-2]",5:"GOOD LENGTH",6:"SHORT",7:"OVERPITCHED",8:"GOOD LENGTH",9:"TURN [-1]",10:"GOOD LENGTH [-1]",11:"TURN",12:"EXTRAS +3"} },
+    { id:"WS26", desc:"Unexpected lift",            stats:"71 wkts / 2.36 econ / 27.92 avg",
+      rows:{2:"LONG HOP",3:"LIFT [-2]",4:"GOOD LENGTH",5:"TURN [-1]",6:"OVERPITCHED",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"SHORT",10:"WELL-FLIGHTED",11:"GOOD LENGTH [-2]",12:"EXTRAS +5"} },
+    { id:"WS28", desc:"Flighty and accurate",       stats:"63 wkts / 2.44 econ / 25.62 avg",
+      rows:{2:"GOOD LENGTH",3:"WELL-FLIGHTED",4:"WELL-FLIGHTED [-1]",5:"GOOD LENGTH [-1]",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"WELL-FLIGHTED [-1]",11:"TURN",12:"EXTRAS +1"} },
+    { id:"WS30", desc:"Big spinner of the ball",    stats:"63 wkts / 2.85 econ / 29.92 avg",
+      rows:{2:"GOOD LENGTH [-2]",3:"LIFT [-1]",4:"WELL-FLIGHTED",5:"TURN [-1]",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"GOOD LENGTH",10:"SHORT",11:"TURN",12:"EXTRAS +2"} },
+    { id:"WS33", desc:"Flight and spin",            stats:"83 wkts / 2.36 econ / 32.46 avg",
+      rows:{2:"GOOD LENGTH",3:"TURN",4:"TURN [-1]",5:"GOOD LENGTH",6:"SHORT",7:"GOOD LENGTH",8:"OVERPITCHED",9:"WELL-FLIGHTED [-1]",10:"GOOD LENGTH",11:"WELL-FLIGHTED",12:"EXTRAS +2"} },
+    { id:"WS34", desc:"Flight and spin",            stats:"71 wkts / 2.92 econ / 34.55 avg",
+      rows:{2:"FULL TOSS",3:"WELL-FLIGHTED [-1]",4:"TURN [-1]",5:"SHORT",6:"GOOD LENGTH",7:"OVERPITCHED",8:"GOOD LENGTH [-1]",9:"TURN",10:"GOOD LENGTH",11:"SHORT",12:"EXTRAS +1"} },
+    { id:"WS35", desc:"Turn, lift and accuracy",    stats:"100 wkts / 2.13 econ / 35.49 avg",
+      rows:{2:"LIFT [-1]",3:"GOOD LENGTH",4:"TURN [-1]",5:"GOOD LENGTH",6:"OVERPITCHED",7:"GOOD LENGTH",8:"GOOD LENGTH",9:"SHORT",10:"GOOD LENGTH",11:"TURN",12:"EXTRAS +3"} },
+    { id:"WS38", desc:"Big spinner but inaccurate", stats:"67 wkts / 3.40 econ / 37.96 avg",
+      rows:{2:"TURN [-1]",3:"FULL TOSS",4:"TURN [-2]",5:"GOOD LENGTH [-1]",6:"OVERPITCHED",7:"SHORT",8:"GOOD LENGTH",9:"TURN",10:"OVERPITCHED",11:"GOOD LENGTH",12:"EXTRAS +4"} },
+    { id:"WS46", desc:"Flight and lift",            stats:"87 wkts / 3.14 econ / 45.53 avg",
+      rows:{2:"LIFT [-2]",3:"FULL TOSS",4:"WELL-FLIGHTED",5:"SHORT",6:"GOOD LENGTH",7:"OVERPITCHED",8:"GOOD LENGTH",9:"WELL-FLIGHTED [-1]",10:"TURN",11:"SHORT",12:"EXTRAS +4"} },
+  ]
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODE DATA
+// ─────────────────────────────────────────────────────────────────────────────
+const MB_DATA = {
+  test: {
+    "Shutters Up": {
+      SHORT:{BH:"Hook — 4",A:"Cut — 2",B:"Chopped past gully — 1",C:"Push to mid-wkt — 1",D:"Turned past short leg — 1",E:"Pushed wide of gully — 1",F:"Pushed to silly mid-on — 0",G:"No stroke — 0",H:"Back defensive — 0",X:"Hurried defensive prod — 0",Z:"Struck on pads — 0"},
+      "GOOD LENGTH":{BH:"FALSE SHOT",A:"Push into covers — 0",B:"Slow dead bat — 0",C:"Slow dead bat — 0",D:"Forward defensive — 0",E:"No stroke — 0",F:"Forward defensive — 0",G:"Back defensive — 0",H:"Hurried defensive — 0",X:"Hurried defensive — 0",Z:"APPEAL CHART"},
+      OVERPITCHED:{BH:"Cover drive — 4",A:"Off drive — 2",B:"Turned to fine leg — 2",C:"Pushed wide of mid-on — 1",D:"Forced to mid-wkt — 1",E:"Pushed wide of cover — 1",F:"Played into covers — 0",G:"Forward defensive — 0",H:"Defensive prod — 0",X:"Hurried defensive — 0",Z:"Edge drops short of slip — 0"},
+      YORKER:{BH:"BOWLED",A:"Blocked",B:"Blocked",C:"Blocked",D:"Blocked",E:"Blocked",F:"Blocked",G:"Blocked",H:"Just blocked",X:"Just blocked",Z:"BOWLED"},
+      BOUNCER:{BH:"Hook — 4",A:"Moved inside line",B:"Moved inside line",C:"Ducked",D:"Ducked",E:"Ducked",F:"Ducked",G:"Ducked",H:"Just ducked",X:"STRUCK***",Z:"CAUGHT short leg off glove"},
+      SWING:{BH:"Snick through slips — 4",A:"No stroke",B:"Withdrew bat",C:"Withdrew bat",D:"Withdrew bat",E:"Withdrew bat",F:"Pushed into gully — 0",G:"Hurried defensive — 0",H:"Beaten",X:"EDGED — CHANCE CHART",Z:"CT. WKT. APPEAL"},
+      LIFT:{BH:"EDGED — CHANCE",A:"Turned past short leg — 1",B:"Kept down well — 0",C:"Kept down well — 0",D:"Withdrew bat",E:"Withdrew bat",F:"Withdrew bat",G:"Just withdrew bat",H:"Played & missed, BYES?",X:"FALSE SHOT",Z:"CT. WKT. APPEAL"},
+      "MOVEMENT OFF PITCH":{BH:"Square drive — 2",A:"Pushed to mid-wkt — 1",B:"Chopped past gully — 1",C:"Back defensive — 0",D:"Back defensive — 0",E:"Back defensive — 0",F:"Back defensive — 0",G:"Hurried defensive — 0",H:"Struck on pads, L/BYES?",X:"FALSE SHOT",Z:"APPEAL CHART"},
+      "WELL-FLIGHTED":{BH:"FALSE SHOT",A:"Leg sweep — 3",B:"Forced to mid-wkt — 1",C:"Dead bat — 0",D:"Dead bat — 0",E:"Forward defensive — 0",F:"Forward defensive — 0",G:"Forward defensive — 0",H:"Hurried defensive — 0",X:"FALSE SHOT",Z:"APPEAL CHART"},
+      "LONG HOP":{BH:"Pull to mid-wkt — 4",A:"Back foot drive — 4",B:"Swung to leg — 3",C:"Hook — 2",D:"Pushed to mid-wkt — 2",E:"Clipped to fine leg — 2",F:"Played into covers — 1",G:"Pushed wide of square — 1",H:"Forced wide of gully — 1",X:"Swing misses — 0"},
+      "FULL TOSS":{BH:"Off drive — 4",A:"On drive — 4",B:"Driven square off side — 3",C:"Swung to mid-wkt — 2",D:"Driven back past bowler — 2",E:"Turned past short leg — 1",F:"Pushed into covers — 1",G:"On drive — 1",H:"Mis-hit to bowler — 0",X:"Struck on pads"},
+      TURN:{BH:"FALSE SHOT",A:"No stroke",B:"No stroke",C:"Back defensive — 0",D:"Back defensive — 0",E:"Back defensive — 0",F:"Back defensive — 0",G:"Back defensive — 0",H:"Rapped on pads — 0",X:"FALSE SHOT",Z:"APPEAL CHART"},
+    },
+    "Defensive": {
+      SHORT:{BH:"Hook — 4",A:"Hook to long leg — 4",B:"Cut evades gully — 4",C:"Back foot off drive — 2",D:"Clipped off pads — 1",E:"Steered to third man — 1",F:"Push off side — 1",G:"Turned to mid-wkt — 1",H:"Back defensive — 0",X:"Struck on pads — 0",Z:"EDGED — CHANCE"},
+      "GOOD LENGTH":{BH:"Uppish square drive — 2",A:"Push into covers — 0",B:"Slow dead bat — 0",C:"Slow dead bat — 0",D:"Forward defensive — 0",E:"No stroke — 0",F:"Back defensive — 0",G:"Hurried defensive — 0",H:"Beaten outside off — 0",X:"1-2=APPEAL, 4-6=beaten",Z:"APPEAL CHART"},
+      OVERPITCHED:{BH:"Drive over mid-on — 4",A:"Off drive — 4",B:"Driven wide of cover — 3",C:"Swung to mid-wkt — 2",D:"Turned to fine leg — 2",E:"Push to mid-wkt — 1",F:"Push into covers — 1",G:"Forward defensive — 0",H:"Forward defensive — 0",X:"Attempted drive misses — 0",Z:"L.B.W. APPEAL"},
+      YORKER:{BH:"BOWLED",A:"Blocked",B:"Blocked",C:"Blocked",D:"Blocked",E:"Blocked",F:"Blocked",G:"Just blocked",H:"Just blocked",X:"BOWLED",Z:"BOWLED"},
+      BOUNCER:{BH:"Hook — 4",A:"Hook — 4",B:"Hook — 2",C:"Hook — 1",D:"Moved inside line",E:"Ducked, BYES?",F:"Ducked",G:"Ducked",H:"STRUCK***",X:"1-3=CT WKT, 4-6=Withdrew bat",Z:"CAUGHT at short leg (C)"},
+      SWING:{BH:"Square drive in air — 4",A:"Push off side — 1",B:"Turned to mid-wkt — 1",C:"Withdrew bat",D:"Withdrew bat",E:"Withdrew bat",F:"Hurried defensive — 0",G:"Edged along ground to slip — 0",H:"Beaten outside off — 0",X:"EDGED — CHANCE",Z:"Thin edge — CT. WKT."},
+      LIFT:{BH:"Pull top edged over WK — 1",A:"Run to third man — 1",B:"Turned past short leg — 1",C:"Kept down well — 0",D:"Withdrew bat",E:"Withdrew bat",F:"Withdrew bat",G:"Just withdrew bat",H:"Played & missed",X:"EDGED — CHANCE",Z:"BALL IN AIR"},
+      "MOVEMENT OFF PITCH":{BH:"Driven off back foot — 4",A:"Leg glance — 2",B:"Turned off pads — 1",C:"Back defensive — 0",D:"Back defensive — 0",E:"Back defensive — 0",F:"Back defensive — 0",G:"Hurried defensive — 0",H:"Beaten, struck on pads — 0",X:"EDGED — CHANCE",Z:"APPEAL CHART"},
+      "WELL-FLIGHTED":{BH:"Straight drive — 6",A:"Off drive — 4",B:"Clipped to mid-wkt — 2",C:"On drive — 1",D:"Forward defensive — 0",E:"Dead bat — 0",F:"Forward defensive — 0",G:"Hesitant def prod — 0",H:"Beaten in air",X:"L.B.W. APPEAL",Z:"APPEAL CHART"},
+      "LONG HOP":{BH:"Pull over mid-wkt — 6",A:"Pull — 4",B:"Swung to mid-wkt — 4",C:"Hook — 2",D:"Swung to leg — 2",E:"Pulled to mid-wkt — 2",F:"Hooked to long leg — 1",G:"Drive over bowler — 1",H:"Hook mis-timed — 1",X:"Swing fails — 0"},
+      "FULL TOSS":{BH:"Drive over long on — 6",A:"Pulled to mid-wkt — 4",B:"Off drive — 4",C:"On drive — 2",D:"Swung to long leg — 2",E:"Square drive — 2",F:"Driven past cover — 1",G:"Mistimed drive over bowler — 1",H:"Mis-timed pull — 1",X:"Swing misses, hit on pads — 0"},
+      TURN:{BH:"Swung to leg — 2",A:"Late cut — 1",B:"Turned off legs — 1",C:"Push into covers — 1",D:"Back defensive — 0",E:"Back defensive — 0",F:"Back defensive — 0",G:"Rapped on pads — 0",H:"Played at, Beaten",X:"APPEAL CHART",Z:"OUT CHART"},
+    },
+    "Normal": {
+      SHORT:{BH:"Hook — 6",A:"Hook — 4",B:"Cut — 4",C:"Square drive off back foot — 3",D:"Turned off pads — 2",E:"Cut — 2",F:"Push to on side — 1",G:"Steered past gully — 1",H:"Push into covers — 1",X:"Rapped on pads — 0",Z:"EDGED — CHANCE"},
+      "GOOD LENGTH":{BH:"Pull to mid-wkt — 4",A:"Push wide of mid-on — 1",B:"Off side push — 1",C:"Slow dead bat — 0",D:"Slow dead bat — 0",E:"Forward defensive — 0",F:"Back defensive — 0",G:"Hurried defensive — 0",H:"Beaten outside off — 0",X:"1-3=APPEAL, 4-6=beaten",Z:"OUT CHART"},
+      OVERPITCHED:{BH:"Lofted straight drive — 6",A:"Off drive — 4",B:"Cover drive — 4",C:"Driven square of off side — 3",D:"On drive — 2",E:"Forced to mid-wkt — 2",F:"Turned off legs — 1",G:"Push off side — 1",H:"Mis-timed drive — 1",X:"Swing to leg misses — 0",Z:"BALL IN AIR"},
+      YORKER:{BH:"BOWLED",A:"Blocked",B:"Blocked",C:"Blocked",D:"Blocked",E:"Blocked",F:"Blocked",G:"Just blocked",H:"1=PLAYED ON, 2-6=blocked",X:"BOWLED",Z:"BOWLED"},
+      BOUNCER:{BH:"Hook — 6",A:"Hook — 4",B:"Hook — 4",C:"Hook — 2",D:"Hook — 1",E:"Moved inside line",F:"Ducked",G:"Ducked",H:"STRUCK***",X:"BALL IN AIR",Z:"Skier CAUGHT at mid-wkt (O)"},
+      SWING:{BH:"Edged over slips — 4",A:"Cut — 2",B:"Cover drive — 1",C:"Push to off side — 1",D:"Withdrew bat",E:"Withdrew bat",F:"Beaten by late swing",G:"Beaten",H:"OUTSIDE EDGE: 1-2=SLIPS, 3-6=Wide — 1",X:"EDGED — CHANCE",Z:"BOWLED by in-swinger"},
+      LIFT:{BH:"Edged drive over slips — 2",A:"Turned to leg — 1",B:"Push to off side — 1",C:"Chopped past gully — 1",D:"Withdrew bat",E:"Withdrew bat just in time",F:"Turned to short leg — 0",G:"Beaten, BYES?",H:"Swing misses — 0",X:"EDGED — CHANCE",Z:"CAUGHT WICKET KEEPER"},
+      "MOVEMENT OFF PITCH":{BH:"Fierce square cut — 4",A:"Deflected to long leg — 2",B:"Cut — 2",C:"Clipped to leg — 2",D:"Turned wide of sq leg — 1",E:"Back defensive — 0",F:"Inside edge to short leg — 0",G:"Rapped on pads, L/BYES?",H:"Rapped on pads — 0",X:"APPEAL CHART",Z:"OUT CHART"},
+      "WELL-FLIGHTED":{BH:"Straight drive — 6",A:"On drive — 4",B:"Off drive — 2",C:"Clipped to mid-wkt — 2",D:"Off drive — 1",E:"Dead bat — 0",F:"Forward defensive — 0",G:"Mis-hit drive — 0",H:"Beaten in air — 0",X:"Bat & pad CATCH APPEAL",Z:"OUT CHART"},
+      "LONG HOP":{BH:"Pull into crowd — 6",A:"Pull — 6",B:"Pull — 4",C:"Hook through mid-wkt — 4",D:"Hook to long leg — 4",E:"Pull — 3",F:"Swung to leg — 3",G:"Mis-timed hook — 2",H:"Pulled in air wide of mid-on — 1",X:"Wild swing misses — 0"},
+      "FULL TOSS":{BH:"Hoisted over sq leg — 6",A:"Pull — 4",B:"Lofted off drive — 4",C:"On drive — 4",D:"Cover drive — 4",E:"Square drive — 3",F:"Clipped to long leg — 2",G:"Mis-hit drive — 2",H:"Badly timed — 0",X:"1=CAUGHT mid-on (C), 2-6=No run"},
+      TURN:{BH:"Punched through off side — 3",A:"Late cut — 4",B:"Back foot drive — 1",C:"Chopped past gully — 1",D:"Turned to short leg — 0",E:"Back defensive — 0",F:"Outside edge doesn't carry — 0",G:"Inside edge onto pads — 0",H:"Beaten, BYES?",X:"OUT CHART",Z:"BOWLED between bat & pad"},
+    },
+    "Looking for Runs": {
+      SHORT:{BH:"Hook — 6",A:"Cut — 4",B:"Hook — 4",C:"Off drive off back foot — 4",D:"Clipped off pads — 3",E:"Steered to third man — 2",F:"Push to mid-wkt — 2",G:"Turned past short leg — 1",H:"Push into covers — 1",X:"1-2=L.B.W. APPEAL, 3-6=Rapped",Z:"BALL IN AIR"},
+      "GOOD LENGTH":{BH:"Straight drive — 4",A:"Punched past gully — 2",B:"Push into covers — 1",C:"Deflected to third man — 1",D:"Glanced to fine leg — 1",E:"Forward defensive — 0",F:"Forward defensive — 0",G:"Hurried defensive — 0",H:"Attempted cut misses — 0",X:"APPEAL CHART",Z:"OUT CHART"},
+      OVERPITCHED:{BH:"Swung high over mid-wkt — 6",A:"Cover drive — 4",B:"On drive — 4",C:"Straight drive — 4",D:"Leg glance — 3",E:"Off drive — 2",F:"Pushed through off side — 1",G:"Pushed past short leg — 1",H:"Mis-hit off drive — 0",X:"1-2=APPEAL, 3-6=pads",Z:"BALL IN AIR"},
+      YORKER:{BH:"BOWLED MIDDLE STUMP",A:"Push into covers — 1",B:"Blocked",C:"Blocked",D:"Blocked",E:"Blocked",F:"Just blocked",G:"Just blocked",H:"1-3=PLAYED ON, 4-6=almost",X:"BOWLED",Z:"BOWLED"},
+      BOUNCER:{BH:"Hook — 6",A:"Hook — 6",B:"Hook — 4",C:"Hook — 3",D:"Hook — 2",E:"Hook — 1",F:"Ducked",G:"Ducked",H:"STRUCK***",X:"CAUGHT at deep sq leg (O)",Z:"CAUGHT at short leg (C)"},
+      SWING:{BH:"Slashed over slip — 4",A:"Late cut — 4",B:"Steered past gully — 2",C:"Pushed to mid-wkt — 1",D:"Withdrew bat",E:"Hurried defensive — 0",F:"Edged first bounce to gully — 0",G:"Beaten outside off stump",H:"EDGED — CHANCE",X:"L.B.W. APPEAL",Z:"CAUGHT IN SLIPS"},
+      LIFT:{BH:"Mis-hit drive just clears extra cover — 4",A:"Turned past short leg — 2",B:"Pushed wide of gully — 1",C:"Pushed to mid-wkt — 1",D:"Withdrew bat",E:"Uppish drops short — 0",F:"Attempted cut, no contact — 0",G:"Played & missed, BYES?",H:"Struck on forearm, L/BYES?",X:"EDGED — CHANCE",Z:"OUT CHART"},
+      "MOVEMENT OFF PITCH":{BH:"Back foot cover drive — 4",A:"Cut — 3",B:"Flicked off pads — 2",C:"Pushed wide of mid-off — 2",D:"Push into covers — 1",E:"Attempted cut misses — 0",F:"Struck on pads — 0",G:"Inside edge misses leg stump — 0",H:"Struck on pads, L/BYES?",X:"L.B.W. APPEAL",Z:"OUT CHART"},
+      "WELL-FLIGHTED":{BH:"Good footwork, straight — 6",A:"Leg sweep — 4",B:"On drive — 4",C:"Leg sweep — 2",D:"Off drive — 2",E:"Turned to deep sq leg — 1",F:"Mis-timed drive — 0",G:"Sweep misses, hit on pads — 0",H:"BALL IN AIR",X:"L.B.W. APPEAL",Z:"OUT CHART"},
+      "LONG HOP":{BH:"Pulled into crowd — 6",A:"Pull — 6",B:"Hook to long leg — 4",C:"Pull — 4",D:"Swung high to sq leg — 4",E:"Back foot drive — 3",F:"Lofted over mid-wkt — 2",G:"Mis-timed hook — 2",H:"Hook just clears sq leg — 1",X:"1-2=CAUGHT AT SQ LEG, 3-6=No run"},
+      "FULL TOSS":{BH:"Pull to mid-wkt — 6",A:"Straight drive — 6",B:"Clipped through mid-wkt — 4",C:"Off drive — 4",D:"On drive — 4",E:"Forced wide of cover — 3",F:"Swung to mid-wkt — 2",G:"Off drive — 2",H:"Mis-hit drive — 1",X:"Big swish, no contact — 0"},
+      TURN:{BH:"Clipped through mid-wkt — 4",A:"Late cut — 4",B:"Cut — 2",C:"Turned off pads — 1",D:"Pushed to mid-wkt — 1",E:"Attempted cut, no contact — 0",F:"Drive misses, pads — 0",G:"Beaten",H:"EDGED — CHANCE",X:"L.B.W. APPEAL",Z:"OUT CHART"},
+    },
+    "Hitting Out": {
+      SHORT:{BH:"Pull — 6",A:"Hook — 6",B:"Hook over long leg — 6",C:"On drive off back foot — 4",D:"Pull to mid-wkt — 4",E:"Square drive — 4",F:"Hook just clears sq leg — 3",G:"Mis-hit hook over WK — 3",H:"Inside edge to fine leg — 1",X:"APPEAL CHART",Z:"Skier CAUGHT in deep (O)"},
+      "GOOD LENGTH":{BH:"Straight drive — 6",A:"Pull — 4",B:"Swung to leg — 4",C:"Square drive — 3",D:"Mis-timed drive — 1",E:"Big swish, no contact — 0",F:"EDGED CHANCE",G:"BALL IN AIR",H:"APPEAL CHART",X:"OUT CHART",Z:"BOWLED"},
+      OVERPITCHED:{BH:"Pull over mid-wkt — 6",A:"Straight drive — 6",B:"Swung to leg — 4",C:"Cover drive — 4",D:"On drive — 4",E:"Off drive — 3",F:"Mis-hit on drive — 2",G:"Mis-timed pull to fine leg — 1",H:"Drive edged short of gully — 0",X:"APPEAL CHART",Z:"OUT CHART"},
+      YORKER:{BH:"BOWLED",A:"Driven back past bowler — 4",B:"Forced to mid-wkt — 2",C:"Driven into covers — 1",D:"Blocked",E:"Just blocked",F:"INSIDE EDGE onto STUMPS",G:"BOWLED",H:"BOWLED",X:"BOWLED",Z:"BOWLED"},
+      BOUNCER:{BH:"Hook — 6",A:"Hook to long leg — 6",B:"Hook — 4",C:"Hook — 4",D:"Hook — 4",E:"Mis-timed hook — 3",F:"STRUCK***",G:"BALL IN AIR",H:"BALL IN AIR",X:"BALL IN AIR",Z:"TOP EDGE CATCH to WK"},
+      SWING:{BH:"Driven over mid-off — 4",A:"Cut — 4",B:"Clipped off pads — 3",C:"Square drive — 2",D:"Punched past gully — 2",E:"Turned past short leg — 1",F:"EDGED — CHANCE",G:"BALL IN AIR",H:"CAUGHT WKT. APPEAL",X:"OUT CHART",Z:"BOWLED by in-swinger"},
+      LIFT:{BH:"Big leg side swing misses — 0",A:"Swung over long leg — 6",B:"Edged over slip — 3",C:"Uppish shot past sq leg — 2",D:"Drive just clears mid-off — 1",E:"Square drive misses — 0",F:"EDGED — CHANCE",G:"CAUGHT WKT. APPEAL",H:"APPEAL CHART",X:"OUT CHART",Z:"OUT CHART"},
+      "MOVEMENT OFF PITCH":{BH:"Fierce drive past mid-wkt — 4",A:"Cut — 4",B:"Flicked off pads — 4",C:"Steered past gully — 2",D:"Inside edge past short leg — 1",E:"Beaten, BYES?",F:"EDGED — CHANCE",G:"L.B.W. APPEAL, L/BYES?",H:"APPEAL CHART",X:"OUT CHART",Z:"OUT CHART"},
+      "WELL-FLIGHTED":{BH:"Down the wicket, straight drive — 6",A:"Pull over mid-wkt — 6",B:"On drive — 4",C:"Leg sweep — 4",D:"Off drive — 4",E:"Forced to leg — 3",F:"Push into covers — 1",G:"BALL IN AIR",H:"STUMPING APPEAL",X:"BOWLED as drive misses",Z:"Down the wicket, STUMPED"},
+      "LONG HOP":{BH:"Pull into crowd — 6",A:"Hook over sq leg — 6",B:"Hook to long leg — 4",C:"Pull — 4",D:"On drive off back foot — 4",E:"Swung to leg — 3",F:"Mis-timed hook — 2",G:"Mis-timed square drive — 2",H:"Inside edge trickles past sq leg — 1",X:"BALL IN AIR"},
+      "FULL TOSS":{BH:"Pull over mid-wkt — 6",A:"Straight drive — 6",B:"On drive — 6",C:"Off drive — 4",D:"Square drive — 4",E:"Swung to leg — 4",F:"Cover drive — 3",G:"Pushed past mid-on — 2",H:"Mis-hit drive — 1",X:"BALL IN AIR"},
+      TURN:{BH:"Back foot drive — 4",A:"Cut — 4",B:"On drive — 3",C:"Chopped to deep third man — 2",D:"Uppish into covers — 1",E:"Struck on pads — 0",F:"EDGED — CHANCE",G:"BALL IN AIR",H:"L.B.W. APPEAL",X:"APPEAL CHART",Z:"BOWLED between bat & pad"},
+    },
+  },
+  odi: {
+    "Defensive": {
+      SHORT:{BH:"Pull — 4",A:"Cut — 4",B:"Hook — 4",C:"Back foot drive — 2",D:"Whipped off pads — 2",E:"Chopped to third man — 2",F:"Push off side — 1",G:"Turned past sq leg — 1",H:"Back defensive — 0",X:"Rapped on pads — 0",Z:"EDGED — CHANCE"},
+      "GOOD LENGTH":{BH:"Hit past mid-wkt — 4",A:"Forced away off legs — 2",B:"Pushed off side — 1",C:"Forward defensive — 0",D:"No stroke — 0",E:"Forward defensive — 0",F:"Back defensive — 0",G:"Defensive prod — 0",H:"Struck on pads — 0",X:"1-3=APPEAL, 4-6=beaten",Z:"OUT CHART"},
+      OVERPITCHED:{BH:"Driven over mid-off — 4",A:"On drive — 4",B:"Driven past cover — 4",C:"Swung to mid-wkt — 3",D:"Push wide of mid-on — 2",E:"Driven back past bowler — 1",F:"Pushed wide of cover — 1",G:"Driven wide of mid-off — 1",H:"Drive misses, pads",X:"Attempted drive misses — 0",Z:"L.B.W. APPEAL"},
+      YORKER:{BH:"BOWLED",A:"Squeezed out — 1",B:"Blocked",C:"Blocked",D:"Blocked",E:"Blocked",F:"Blocked",G:"Just blocked",H:"Just blocked",X:"Inside edge — BOWLED",Z:"Comprehensively BOWLED"},
+      BOUNCER:{BH:"Hook — 6",A:"Hook — 4",B:"Hook — 2",C:"Hook — 1",D:"Moved inside line",E:"Ducked",F:"Ducked",G:"Ducked late",H:"STRUCK***",X:"1-2=CT WKT APPEAL, 3-6=Hook fails",Z:"CAUGHT off mis-timed hook (C)"},
+      SWING:{BH:"Slash over slip — 4",A:"Steered wide of gully — 2",B:"Push off side — 1",C:"Pushed backward of sq leg — 1",D:"Withdrew bat",E:"Withdrew bat",F:"Hurried defensive",G:"Beaten by swing",H:"Beaten outside off",X:"EDGED — CHANCE",Z:"CAUGHT WKT."},
+      LIFT:{BH:"Big drive misses",A:"Run to third man — 1",B:"Turned past short leg — 1",C:"Kept down well — 0",D:"Withdrew bat",E:"Withdrew bat",F:"Struck on glove, falls safe — 0",G:"Just got bat out of way — 0",H:"Played & missed, BYES?",X:"CAUGHT WKT APPEAL",Z:"CAUGHT at short leg off glove"},
+      "MOVEMENT OFF PITCH":{BH:"Smashed through mid-wkt — 4",A:"Chopped past gully — 2",B:"Turned off pads — 1",C:"Push into covers — 1",D:"Back defensive — 0",E:"Back defensive — 0",F:"Hurried defensive — 0",G:"Late defensive prod — 0",H:"Beaten",X:"L.B.W. APPEAL",Z:"OUT CHART"},
+      "WELL-FLIGHTED":{BH:"Driven over mid-off — 3",A:"Straight drive — 4",B:"Off drive — 2",C:"On drive — 1",D:"Pushed wide of mid-wkt — 1",E:"Dead bat — 0",F:"Forward defensive — 0",G:"Hesitant defensive — 0",H:"Beaten in air",X:"STUMPING APPEAL",Z:"OUT CHART"},
+      "LONG HOP":{BH:"Pull — 6",A:"Pull — 6",B:"Punched past mid-wkt — 4",C:"Hook — 4",D:"Back foot drive — 3",E:"Swung to leg — 2",F:"Pulled to long leg — 2",G:"Driven over bowler — 2",H:"Hook mistimed — 1",X:"Swing fails to connect"},
+      "FULL TOSS":{BH:"Straight drive — 6",A:"Pulled to mid-wkt — 4",B:"Off drive — 4",C:"On drive — 3",D:"Swung to long leg — 2",E:"Driven to mid-wkt — 2",F:"Driven through covers — 2",G:"Square drive — 1",H:"Mistimed pull falls safe — 1",Z:"Drive straight to fielder — 0"},
+      TURN:{BH:"Swung to leg — 2",A:"Late cut — 4",B:"Push off side — 1",C:"Turned off legs — 1",D:"Dead bat — 0",E:"Padded away",F:"Back defensive — 0",G:"Beaten playing back — 0",H:"Rapped on pads, L.BYES?",X:"APPEAL CHART",Z:"OUT CHART"},
+    },
+    "Normal": {
+      SHORT:{BH:"Pull — 6",A:"Hook — 4",B:"Cut — 4",C:"Driven square — 4",D:"Swung to long leg — 3",E:"Chopped past gully — 2",F:"Pushed past mid-wkt — 2",G:"Turned off pads — 1",H:"Push into covers — 1",X:"1-2=EDGED CHANCE, 3-6=No contact",Z:"BALL IN AIR"},
+      "GOOD LENGTH":{BH:"Clubbed past mid-wkt — 4",A:"On drive — 4",B:"Push on on-side — 1",C:"Turned off pads — 1",D:"Forward defensive — 0",E:"Padded away — 0",F:"Back defensive — 0",G:"Hurried defensive — 0",H:"Beaten, rapped on pads",X:"APPEAL CHART",Z:"OUT CHART"},
+      OVERPITCHED:{BH:"Huge — 6",A:"Straight drive — 4",B:"Driven through covers — 4",C:"Uppish drive past mid-off — 3",D:"On drive — 2",E:"Swung to mid-wkt — 2",F:"Push on leg-side — 1",G:"Clipped to leg — 1",H:"Mis-timed off drive — 1",X:"1-2=EDGED CHANCE, 3-6=Big drive misses",Z:"BALL IN AIR"},
+      YORKER:{BH:"BOWLED",A:"Driven back past bowler — 2",B:"Squeezed out off side — 1",C:"Blocked, ball runs loose — 1",D:"Blocked",E:"Blocked",F:"Blocked",G:"Inside edge onto pad — 0",H:"1-2=PLAYED ON, 3-6=Just blocked",X:"BOWLED",Z:"BOWLED"},
+      BOUNCER:{BH:"Hook into crowd — 6",A:"Hook over sq leg — 6",B:"Hooked to long leg — 4",C:"Hook in air over sq leg — 4",D:"Mis-timed hook — 2",E:"Off glove over short leg — 1",F:"Ducked",G:"Ducked",H:"STRUCK***",X:"BALL IN AIR",Z:"CAUGHT off glove (C)"},
+      SWING:{BH:"Big drive flies over slip — 4",A:"Square drive — 3",B:"Off drive — 2",C:"Steered past slip — 1",D:"Outside edge, first bounce to slip — 0",E:"Withdrew bat",F:"Late swing beats outside edge",G:"Attempted drive, no contact",H:"1-2=CT WKT APPEAL, 3-6=Beaten",X:"CT. WKT APPEAL",Z:"BOWLED by inswinger"},
+      LIFT:{BH:"Slashed over slip — 4",A:"Turned cleverly to leg — 2",B:"Push off side — 1",C:"Steered past gully — 1",D:"Withdrew bat",E:"Kept down well — 0",F:"Withdrew bat just in time",G:"Uppish shot falls safe — 0",H:"Beaten, BYES?",X:"EDGED — CHANCE",Z:"CAUGHT WICKET off thin edge"},
+      "MOVEMENT OFF PITCH":{BH:"Fierce square drive — 4",A:"Deflected to fine leg — 4",B:"Cut past slip — 2",C:"Swung to leg — 2",D:"Push to mid-off — 1",E:"Back defensive",F:"Struck on pads, L.BYES?",G:"Inside edge onto pads — 0",H:"Struck on pads — 0",X:"L.B.W. APPEAL",Z:"OUT CHART"},
+      "WELL-FLIGHTED":{BH:"Straight drive — 6",A:"On drive — 4",B:"Off drive — 2",C:"Straight drive — 2",D:"Driven into covers — 1",E:"Played out off side — 0",F:"Dead bat — 0",G:"Mis-hit drive — 0",H:"1-2=BALL IN AIR, 3-6=BAT/PAD short — 0",X:"STUMPING APPEAL",Z:"OUT CHART"},
+      "LONG HOP":{BH:"Pulled into crowd — 6",A:"Pulled over mid-wkt — 6",B:"Swung high to leg — 6",C:"Crashed past mid-wkt — 4",D:"Hook to long leg — 4",E:"Pull, long chase — 3",F:"Swung past sq leg — 2",G:"Pull badly timed — 1",H:"In air, short of mid-off — 1",X:"1=CAUGHT (O), 2-6=No contact"},
+      "FULL TOSS":{BH:"Straight drive — 6",A:"Big on drive — 6",B:"Lofted off drive — 4",C:"Smashed past bowler — 4",D:"Driven high over cover — 4",E:"Square drive — 4",F:"Cross-batted to mid-wkt — 2",G:"Mistimed drive — 2",H:"Driven to mid-on — 1",X:"1=Miss-hit CAUGHT (O), 2-6=Hit on pads"},
+      TURN:{BH:"Clubbed to leg — 4",A:"Late cut — 4",B:"Back foot drive — 2",C:"Chopped past gully — 2",D:"Turned past short leg — 1",E:"Back defensive — 0",F:"Edged just short of slips — 0",G:"Rapped on pads, L.BYES?",H:"EDGED — CHANCE",X:"OUT CHART",Z:"BOWLED through gate"},
+    },
+    "Looking for Runs": {
+      SHORT:{BH:"Hooked into crowd — 6",A:"Pull over mid-wkt — 6",B:"Cut — 4",C:"Off drive off back foot — 4",D:"Turned off pads — 3",E:"Steered wide of slip — 2",F:"Push wide of sq leg — 2",G:"Mistimed pull — 1",H:"1-2=APPEAL, 3-6=Mis-timed cut — 0",X:"BALL IN AIR",Z:"APPEAL CHART"},
+      "GOOD LENGTH":{BH:"Fierce square drive — 4",A:"Driven back past bowler — 4",B:"Forced to leg — 1/2",C:"Run to third man — 1",D:"Pushed past short leg — 0/1",E:"L.BYES?",F:"Inside edge onto pad — 0",G:"Hurried defensive — 0",H:"BALL IN AIR",X:"APPEAL CHART",Z:"OUT CHART"},
+      OVERPITCHED:{BH:"Swung high over mid-wkt — 6",A:"Fine cover drive — 4",B:"Driven past mid-on — 4",C:"Lofted drive over mid-off — 4",D:"Cross-batted past mid-wkt — 2",E:"Off drive — 2",F:"Flicked off legs to fine leg — 2",G:"Inside edge onto pad — 1",H:"1-2=L.B.W. APPEAL, 3-6=Rapped on pads",X:"EDGED — CHANCE",Z:"OUT CHART"},
+      YORKER:{BH:"BOWLED",A:"Crashed through covers — 4",B:"Forced to leg — 2",C:"Inside edge on pad — 1",D:"Blocked",E:"Blocked",F:"Just blocked",G:"Just blocked",H:"1-3=PLAYED ON, 4-6=Inside edge",X:"BOWLED",Z:"BOWLED"},
+      BOUNCER:{BH:"Hooked into crowd — 6",A:"Hook — 6",B:"Hook — 4",C:"Pulled wide of mid-wkt — 4",D:"Hooked fine — 3",E:"Mis-timed hook — 2",F:"Hook top-edged but safe — 1",G:"Ducked",H:"STRUCK***",X:"Mis-timed hook, CAUGHT (C)",Z:"Easy CATCH to short leg (C)"},
+      SWING:{BH:"Slashed over slip — 4",A:"Driven square off side — 4",B:"Chopped past gully — 2",C:"Pushed off side — 2",D:"Steered past gully — 1",E:"Hurried defensive — 0",F:"Thick edge falls safe — 0",G:"Beaten by swing, BYES?",H:"EDGED — CHANCE",X:"APPEAL CHART",Z:"CAUGHT AT SLIP (C)"},
+      LIFT:{BH:"Edge over slip — 4",A:"Cleverly turned to fine leg — 4",B:"Push wide of gully — 2",C:"Edged wide of slip — 1",D:"Uppishly wide of sq leg — 1",E:"Withdrew bat",F:"Attempted cut misses — 0",G:"Beaten, BYES?",H:"EDGED — CHANCE",X:"CT. WKT. APPEAL",Z:"CAUGHT WICKET"},
+      "MOVEMENT OFF PITCH":{BH:"Back foot drive — 4",A:"Square cut — 4",B:"Clipped off pads — 2",C:"Pushed past mid-wkt — 2",D:"Pushed into covers — 1",E:"Rapped on pads, L.BYES?",F:"Jabs bat down late — 0",G:"Hit on pads, outside the line — 0",H:"Struck on pads: 1-3=L.B.W., 4-6=Rapped",X:"OUT CHART",Z:"BOWLED off pads"},
+      "WELL-FLIGHTED":{BH:"Straight drive — 6",A:"Beautifully struck sweep — 6",B:"Down the wkt on drive — 4",C:"Off drive — 2",D:"Leg sweep — 2",E:"Push on on-side — 1",F:"Mistimed drive — 0",G:"Drive misses, hit on pads, L.BYES?",H:"BALL IN AIR",X:"STUMPING APPEAL",Z:"OUT CHART"},
+      "LONG HOP":{BH:"Pull into crowd — 6",A:"Pull high over sq leg — 6",B:"Hook over ropes — 6",C:"Pull — 4",D:"Back foot drive — 4",E:"Pull through mid-wkt — 3",F:"Driven just over mid-off — 2",G:"Hook mistimed — 1",H:"Struck on pads — 0",X:"1-3=BALL IN AIR, 4-6=Big swing misses"},
+      "FULL TOSS":{BH:"Straight drive — 6",A:"Hit high over mid-off — 6",B:"Swung high to long leg — 4",C:"Off drive — 4",D:"Straight drive — 4",E:"On drive — 3",F:"Clipped to mid-wkt — 2",G:"Swung to leg — 1",H:"Badly timed drive — 1",X:"1-2=CAUGHT mid-wkt (O), 3-6=Mis-timed pull"},
+      TURN:{BH:"Clubbed to mid-wkt — 4",A:"Fierce square drive — 4",B:"Cut — 4",C:"Push on on-side — 2",D:"Turned past short leg — 1",E:"Cut, edged over slip — 1",F:"Struck on pads, L.BYE",G:"Beaten",H:"EDGED — CHANCE",X:"OUT CHART",Z:"OUT CHART"},
+    },
+    "Hitting Out": {
+      SHORT:{BH:"Pull — 6",A:"Hooked into crowd — 6",B:"Pull over mid-wkt — 6",C:"Swung to long leg — 4",D:"Hooked past sq leg — 4",E:"Turned off pads — 2",F:"Inside edge onto pads — 2",G:"Mis-timed cut — 1",H:"1-2=APPEAL, 3-5=Big swing misses",X:"APPEAL CHART",Z:"Skier CAUGHT in deep (O)"},
+      "GOOD LENGTH":{BH:"Straight drive — 6",A:"Driven back past bowler — 4",B:"Square drive — 4",C:"Driven past mid-on — 2",D:"Pushed into covers — 1",E:"Struck on pad, L.BYES?",F:"EDGED CHANCE",G:"BALL IN AIR",H:"APPEAL CHART",X:"OUT CHART",Z:"OUT CHART"},
+      OVERPITCHED:{BH:"Huge on drive — 6",A:"Swung over mid-wkt boundary — 6",B:"Cover drive — 4",C:"Smashed back past bowler — 4",D:"Off drive — 4",E:"Driven square off side — 3",F:"Punched on leg-side — 2",G:"Mis-hit in air over sq leg — 1",H:"EDGED CHANCE",X:"APPEAL CHART",Z:"OUT CHART"},
+      YORKER:{BH:"BOWLED",A:"On drive — 4",B:"Punched past mid-off — 3",C:"Clipped to leg — 2",D:"Squeezed out off side — 1",E:"Blocked",F:"L.B.W. APPEAL",G:"BOWLED by inswinger",H:"BOWLED",X:"BOWLED",Z:"BOWLED"},
+      BOUNCER:{BH:"Hook — 6",A:"Hook — 6",B:"Hooked fine — 6",C:"Top-edged hook — 4",D:"Hook mis-timed — 2",E:"Moved inside line",F:"STRUCK***",G:"BALL IN AIR",H:"BALL IN AIR",X:"BALL IN AIR",Z:"Skier caught by WK"},
+      SWING:{BH:"Big swish over mid-wkt — 6",A:"Smashed past gully — 4",B:"Outside edge past slip — 4",C:"Cut — 2",D:"Pushed past gully — 1",E:"Turned to short leg — 0",F:"EDGED CHANCE",G:"L.B.W. APPEAL",H:"CT. WKT. APPEAL",X:"OUT CHART",Z:"BOWLED off pads"},
+      LIFT:{BH:"Swing misses, BYES?",A:"Swung to leg — 4",B:"Hook — 4",C:"Uppish shot wide of mid-off — 2",D:"Deflected to fine leg — 1",E:"Big swish misses — 0",F:"BALL IN AIR",G:"EDGED CHANCE",H:"CT. WKT. APPEAL",X:"OUT CHART",Z:"CT.WKT off glove"},
+      "MOVEMENT OFF PITCH":{BH:"Smashed past mid-on — 4",A:"Square Cut — 4",B:"Flicked off pads — 4",C:"Edged past gully — 1",D:"Inside edge onto pad — 0",E:"L.BYES?",F:"EDGED — CHANCE",G:"L.B.W. APPEAL",H:"APPEAL CHART",X:"OUT CHART",Z:"BOWLED"},
+      "WELL-FLIGHTED":{BH:"Down the wkt, straight drive — 6",A:"Lofted over mid-wkt — 6",B:"Driven into Grandstand — 6",C:"Cover drive — 4",D:"Mis-timed drive in air — 4",E:"Swung to leg — 3",F:"Push into covers — 1",G:"BALL IN AIR",H:"STUMPING APPEAL",X:"OUT CHART",Z:"BOWLED"},
+      "LONG HOP":{BH:"Hoisted into stand — 6",A:"Big six into crowd — 6",B:"Pulled over sq leg — 6",C:"Hooked over long leg — 6",D:"Pulled past mid-wkt — 4",E:"Slogged through mid-wkt — 4",F:"On drive — 2",G:"Thick edge clears gully — 2",H:"Big swish, no contact — 0",X:"BALL IN AIR"},
+      "FULL TOSS":{BH:"Pull over mid-wkt — 6",A:"Smashed into sightscreen — 6",B:"Drive clears long-on — 6",C:"On drive — 4",D:"Straight drive — 4",E:"Drive just clears mid-on — 4",F:"Skied over mid-wkt — 3",G:"Driven past bowler — 2",H:"Off drive — 1",X:"BALL IN AIR"},
+      TURN:{BH:"Driven back over bowler — 6",A:"Cut — 4",B:"Off drive — 4",C:"Run to third man — 2",D:"Uppish into covers — 1",E:"EDGED — CHANCE",F:"BALL IN AIR",G:"L.B.W. APPEAL",H:"APPEAL CHART",X:"OUT CHART",Z:"OUT CHART"},
+    },
+    "Power Play": {
+      SHORT:{BH:"Pull — 6",A:"Square cut — 4",B:"Cut — 4",C:"Pull over sq leg — 4",D:"Back foot off drive — 3",E:"Deflected off pads — 2",F:"Turned past short leg — 2",G:"Mis-timed pull — 1",H:"Inside edge onto pad — 1",X:"1=EDGED CHANCE, 2-6=Swish misses",Z:"BALL IN AIR"},
+      "GOOD LENGTH":{BH:"Fierce on drive — 4",A:"Classic cover drive — 4",B:"Pushed wide of slip — 2",C:"Pushed past short leg — 2",D:"Hit hard to close fielder — 0",E:"Forward defensive",F:"Back defensive",G:"L.BYES?",H:"1-3=CT WKT APPEAL, 4-6=Beaten",X:"APPEAL CHART",Z:"OUT CHART"},
+      OVERPITCHED:{BH:"Straight drive — 6",A:"Clipped over mid-wkt — 4",B:"Driven wide of mid-off — 4",C:"Swung to leg — 3",D:"Drive over gully — 2",E:"Driven in air wide of cover — 2",F:"Outside edge between WK & slip — 1",G:"Drive partially stopped by bowler — 1",H:"Mis-timed drive — 1",X:"1-2=EDGED CHANCE, 3-6=No contact",Z:"OUT CHART"},
+      YORKER:{BH:"BOWLED",A:"Driven back past bowler — 4",B:"Clipped past mid-wkt — 2",C:"Squeezed out — 1",D:"Just got bat down — 0",E:"Blocked",F:"Blocked",G:"Inside edge onto boot — 0",H:"L.B.W. APPEAL",X:"BOWLED",Z:"BOWLED"},
+      BOUNCER:{BH:"Hook — 6",A:"Well timed hook into crowd — 6",B:"Big six over sq leg — 6",C:"Hook — 4",D:"Hoiked to leg — 4",E:"Hook mis-timed — 2",F:"Hook misses, off glove — 1",G:"Ducked",H:"STRUCK***",X:"BALL IN AIR",Z:"CAUGHT off glove at slip (C)"},
+      SWING:{BH:"Fierce slash clears slip — 4",A:"Clipped off pads — 4",B:"Off drive — 3",C:"Steered to third man — 2",D:"Pushed into off-side — 1",E:"Edged past slip — 1",F:"Back defensive",G:"Beaten outside off — 0",H:"EDGED — CHANCE",X:"CT WKT APPEAL",Z:"BOWLED"},
+      LIFT:{BH:"Big edge over slip — 4",A:"Cleverly turned to long leg — 4",B:"Pulled through mid-wkt — 3",C:"Turned off hips — 2",D:"Edged in air past short leg — 1",E:"Withdrew bat",F:"Withdrew bat",G:"Attempted cut misses — 0",H:"BYES?",X:"EDGED — CHANCE",Z:"Thin edge, CT.WKT"},
+      "MOVEMENT OFF PITCH":{BH:"Off drive — 4",A:"Cover drive — 4",B:"Clipped off pads — 4",C:"Square drive — 2",D:"Straight drive — 2",E:"Push on leg-side — 1",F:"L.BYES?",G:"Struck on pads",H:"Drive fielded by bowler — 0",X:"APPEAL CHART",Z:"OUT CHART"},
+      "WELL-FLIGHTED":{BH:"Driven over mid-off — 6",A:"Soaring six over bowler — 6",B:"Leg sweep — 4",C:"Hammered past mid-on — 4",D:"Placed wide of cover — 2",E:"Driven to mid-on — 1",F:"Forward defensive",G:"Inside edge onto pads — 0",H:"BALL IN AIR",X:"STUMPING APPEAL",Z:"OUT CHART"},
+      "LONG HOP":{BH:"Pull — 6",A:"Big hit over mid-wkt — 6",B:"Hooked over long leg — 6",C:"In air over mid-on — 4",D:"Mis-cued pull falls safe — 4",E:"Pull just clears mid-wkt — 2",F:"Cross-batted to mid-wkt — 2",G:"Mis-timed pull — 1",H:"Big swing, no contact — 0",X:"BALL IN AIR"},
+      "FULL TOSS":{BH:"Huge straight drive — 6",A:"High over cover — 6",B:"Cracking on drive — 4",C:"Off drive — 4",D:"Driven wide of mid-on — 2",E:"Straight drive — 2",F:"Hammered on off-side — 2",G:"On drive mis-timed — 1",H:"Drive fielded by bowler — 0",X:"BALL IN AIR"},
+      TURN:{BH:"Hoisted into grandstand — 6",A:"Driven through mid-wkt — 4",B:"Hammered past cover — 2",C:"Turned off pads — 1",D:"Pushed into off-side — 1",E:"Dead bat — 0",F:"Drive stopped by mid-on — 0",G:"Rapped on pads, L.BYES?",H:"EDGED — CHANCE",X:"OUT CHART",Z:"BOWLED off pads"},
+    },
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function resClass(r) {
+  if (!r) return '';
+  const u = r.toUpperCase();
+  if (u === 'X') return 'res-x';
+  if (u.includes('BW')) return 'res-bw';
+  if (u.includes('BIG HIT')) return 'res-big';
+  const m = {A:'res-a',B:'res-b',C:'res-c',D:'res-d',E:'res-e',F:'res-f',G:'res-g',H:'res-h'};
+  return m[u] || '';
+}
+function bowlClass(r) {
+  if (!r) return '';
+  if (r.includes('EXTRAS')) return 'bowl-extras';
+  if (r.includes('[-')) return 'bowl-neg';
+  return '';
+}
+function bowlerTypeLabel(id) {
+  if (id.startsWith('FM')) return 'FAST-MEDIUM';
+  if (id.startsWith('WS')) return 'WRIST-SPIN';
+  if (id.startsWith('FS')) return 'FINGER-SPIN';
+  if (id.startsWith('F'))  return 'FAST';
+  if (id.startsWith('M'))  return 'MEDIUM';
+  return '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER BATTING CARD
+// ─────────────────────────────────────────────────────────────────────────────
+function renderBatCard(p) {
+  let battingRows = '';
+  for (let d = 2; d <= 12; d++) {
+    const [main, alt] = p.batting[d] || ['',''];
+    battingRows += `<div class="dice-cell">
+      <div class="dice-num">${d}</div>
+      <div class="dice-result ${resClass(main)}">${main||'—'}</div>
+      ${alt ? `<div class="dice-alt">[${alt}]</div>` : ''}
+    </div>`;
+  }
+  const [avg, sr] = p.stats ? p.stats.split('/').map(s=>s.trim()) : ['',''];
+  let badges = '';
+  if (avg) badges += `<span class="badge badge-avg">AVG ${avg}</span>`;
+  if (sr)  badges += `<span class="badge badge-econ">SR ${sr}</span>`;
+  badges += `<span class="badge badge-label">Batting Well →[]</span>`;
+  document.getElementById('batCard').innerHTML = `
+    <div class="card-header bat-header" data-bg="${p.id}">
+      <div class="card-type-tag bat-type">▶ BATTING CARD</div>
+      <div class="card-id">${p.id}</div>
+      <div class="card-desc">${p.desc}</div>
+      <div class="card-badges">${badges}</div>
+    </div>
+    <div class="card-body">
+      <div class="section-title">Batting Chart · 2D6</div>
+      <div class="batting-grid">${battingRows}</div>
+    </div>
+    <div class="card-footer"><span>🏏 Lambourne / Owzat</span><span>Batting</span></div>`;
+  document.getElementById('emptyBat').style.display = 'none';
+  document.getElementById('batCard').style.display = 'block';
+  const sb = document.getElementById('sidebarBat');
+  if (!sb.classList.contains('collapsed')) toggleSidebar('bat');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER BOWLING CARD
+// ─────────────────────────────────────────────────────────────────────────────
+function renderBowlCard(p) {
+  let bowlRows = '';
+  for (let d = 2; d <= 12; d++) {
+    const r = p.rows[d] || '';
+    bowlRows += `<div class="bowl-cell">
+      <div class="bowl-dnum">${d}</div>
+      <div class="bowl-result ${bowlClass(r)}">${r||'—'}</div>
+    </div>`;
+  }
+  const type = bowlerTypeLabel(p.id);
+  const statParts = p.stats ? p.stats.split('/').map(s=>s.trim()) : [];
+  let badges = `<span class="badge badge-type">${type}</span>`;
+  if (statParts[0]) badges += `<span class="badge badge-wkts">${statParts[0]}</span>`;
+  if (statParts[1]) badges += `<span class="badge badge-econ">${statParts[1]}</span>`;
+  if (statParts[2]) badges += `<span class="badge badge-avg">${statParts[2]}</span>`;
+  document.getElementById('bowlCard').innerHTML = `
+    <div class="card-header bowl-header" data-bg="${p.id}">
+      <div class="card-type-tag bowl-type">▶ BOWLING CARD</div>
+      <div class="card-id">${p.id}</div>
+      <div class="card-desc">${p.desc}</div>
+      <div class="card-badges">${badges}</div>
+    </div>
+    <div class="card-body">
+      <div class="section-title">Bowling Chart · 2D6</div>
+      <div class="bowling-grid">${bowlRows}</div>
+    </div>
+    <div class="card-footer"><span>🏏 Lambourne / Owzat</span><span>Bowling</span></div>`;
+  document.getElementById('emptyBowl').style.display = 'none';
+  document.getElementById('bowlCard').style.display = 'block';
+  const sb = document.getElementById('sidebarBowl');
+  if (!sb.classList.contains('collapsed')) toggleSidebar('bowl');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUILD SIDEBARS
+// ─────────────────────────────────────────────────────────────────────────────
+function buildSidebar(containerId, groups, mode) {
+  const container = document.getElementById(containerId);
+  Object.entries(groups).forEach(([groupName, cards]) => {
+    const group = document.createElement('div');
+    group.className = 'group';
+    const toggle = document.createElement('button');
+    toggle.className = 'group-toggle';
+    toggle.innerHTML = `<span>${groupName} <span style="color:var(--muted);font-size:0.6rem;font-weight:400">(${cards.length})</span></span><span class="chevron">▼</span>`;
+    const list = document.createElement('div');
+    list.className = 'card-list';
+    cards.forEach(card => {
+      const btn = document.createElement('button');
+      btn.className = 'card-btn';
+      btn.innerHTML = `<span class="pdot"></span><span class="card-btn-label">${card.id}<span class="card-btn-sub">${card.desc}</span></span>`;
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.card-btn').forEach(b => b.classList.remove('bat-selected','bowl-selected'));
+        toggle.classList.add(mode === 'bat' ? 'bat-active' : 'bowl-active');
+        btn.classList.add(mode === 'bat' ? 'bat-selected' : 'bowl-selected');
+        if (mode === 'bat') renderBatCard(card);
+        else renderBowlCard(card);
+      });
+      list.appendChild(btn);
+    });
+    toggle.addEventListener('click', () => {
+      const isOpen = list.classList.contains('open');
+      container.querySelectorAll('.card-list').forEach(l => l.classList.remove('open'));
+      container.querySelectorAll('.group-toggle').forEach(t => t.classList.remove('bat-active','bowl-active'));
+      if (!isOpen) { list.classList.add('open'); toggle.classList.add(mode === 'bat' ? 'bat-active' : 'bowl-active'); }
+    });
+    group.appendChild(toggle);
+    group.appendChild(list);
+    container.appendChild(group);
+  });
+}
+buildSidebar('batList',  BATTER_GROUPS, 'bat');
+buildSidebar('bowlList', BOWLER_GROUPS, 'bowl');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COLLAPSE SIDEBARS
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleSidebar(side) {
+  const sidebar = document.getElementById(side === 'bat' ? 'sidebarBat' : 'sidebarBowl');
+  const btn     = document.getElementById(side === 'bat' ? 'collapseBat' : 'collapseBowl');
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  if (side === 'bat')  btn.textContent = isCollapsed ? '▶' : '◀';
+  if (side === 'bowl') btn.textContent = isCollapsed ? '◀' : '▶';
+}
+document.getElementById('collapseBat').addEventListener('click',  () => toggleSidebar('bat'));
+document.getElementById('collapseBowl').addEventListener('click', () => toggleSidebar('bowl'));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODE BAR
+// ─────────────────────────────────────────────────────────────────────────────
+(function() {
+  const bar        = document.getElementById('modeBar');
+  const toggle     = document.getElementById('mbToggle');
+  const fmtTag     = document.getElementById('mbFmtTag');
+  const modeTag    = document.getElementById('mbModeTag');
+  const delTag     = document.getElementById('mbDelTag');
+  const modeSelect = document.getElementById('mbModeSelect');
+  const delSelect  = document.getElementById('mbDelSelect');
+  const results    = document.getElementById('mbResults');
+  const btnTest    = document.getElementById('mbBtnTest');
+  const btnOdi     = document.getElementById('mbBtnOdi');
+
+  let fmt  = 'test';
+  let mode = 'Normal';
+  let del  = '';
+
+  function populateModes() {
+    modeSelect.innerHTML = '';
+    Object.keys(MB_DATA[fmt]).forEach(m => {
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      if (m === mode) o.selected = true;
+      modeSelect.appendChild(o);
+    });
+    if (!MB_DATA[fmt][mode]) {
+      mode = Object.keys(MB_DATA[fmt])[0];
+      modeSelect.value = mode;
+    }
+  }
+
+  function colorDesc(desc) {
+    return desc
+      .replace(/— 6/g, '— <span class="r6">6</span>')
+      .replace(/— 4/g, '— <span class="r4">4</span>')
+      .replace(/— 3/g, '— <span class="r3">3</span>')
+      .replace(/— 2/g, '— <span class="r2">2</span>')
+      .replace(/— 1/g, '— <span class="r1">1</span>')
+      .replace(/\bBOWLED\b|\bSTUMPED\b|\bCAUGHT\b|OUT CHART|EDGED — CHANCE(?! CHART)/g, m => `<span class="out">${m}</span>`)
+      .replace(/APPEAL CHART|BALL IN AIR|FALSE SHOT/g, m => `<span class="chart">${m}</span>`);
+  }
+
+  function renderResults() {
+    if (!del) {
+      results.innerHTML = '<div class="mb-empty"><div class="mb-empty-icon">🎯</div><div class="mb-empty-text">Select format · mode · delivery</div></div>';
+      return;
+    }
+    const modeData = MB_DATA[fmt]?.[mode];
+    if (!modeData) return;
+    const delKey = Object.keys(modeData).find(k => k.toUpperCase() === del.toUpperCase()) || del;
+    const rows   = modeData[delKey];
+    if (!rows) {
+      results.innerHTML = '<div class="mb-empty"><div class="mb-empty-icon">⚠️</div><div class="mb-empty-text">No data for this delivery</div></div>';
+      return;
+    }
+    const keys   = ['BH','A','B','C','D','E','F','G','H','X','Z'];
+    const labels = {BH:'BIG HIT'};
+    let html = `<div class="mb-rtitle"><span class="mb-dlabel">${del}</span> — ${fmt.toUpperCase()} / ${mode}</div><div class="mb-grid">`;
+    keys.forEach(k => {
+      if (!rows[k]) return;
+      const desc = rows[k];
+      const isDismissal = /\bBOWLED\b|\bCAUGHT\b|\bSTUMPED\b|OUT CHART/.test(desc) && !/CHANCE/.test(desc);
+      const isAppeal    = /APPEAL|CHANCE|FALSE SHOT|BALL IN AIR/.test(desc);
+      const isBig       = /— 6/.test(desc);
+      const cls  = isDismissal ? 'rd' : isAppeal ? 'ra' : isBig ? 'rg' : '';
+      const kCls = k === 'X' ? 'kx' : k === 'Z' ? 'kz' : '';
+      html += `<div class="mb-row ${cls}"><span class="mb-key ${kCls}">${labels[k]||k}</span><span class="mb-desc">${colorDesc(desc)}</span></div>`;
+    });
+    html += '</div>';
+    results.innerHTML = html;
+  }
+
+  function updateTags() {
+    fmtTag.textContent = fmt === 'test' ? 'TEST' : 'ODI';
+    fmtTag.className   = 'mb-tag ' + (fmt === 'test' ? 't' : 'o');
+    modeTag.textContent = mode;
+    if (del) { delTag.textContent = del; delTag.style.display = ''; }
+    else { delTag.style.display = 'none'; }
+  }
+
+  toggle.addEventListener('click', () => bar.classList.toggle('open'));
+
+  [btnTest, btnOdi].forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      fmt = btn.dataset.fmt;
+      btnTest.className = 'mb-fbtn' + (fmt === 'test' ? ' at' : '');
+      btnOdi.className  = 'mb-fbtn' + (fmt === 'odi'  ? ' ao' : '');
+      populateModes(); updateTags(); renderResults();
+    });
+  });
+
+  modeSelect.addEventListener('change', e => { mode = e.target.value; updateTags(); renderResults(); });
+  delSelect.addEventListener('change',  e => { del  = e.target.value; updateTags(); renderResults(); });
+
+  populateModes();
+  updateTags();
+})();
+
+
+// ─── REFERENCE CHARTS DATA & LOGIC ───
+// ─────────────────────────────────────────────────────────────────────────────
+// REFERENCE CHART DATA
+// dice key: "11","12","13"... = read lowest first. Values are [desc, type]
+// type: "out" | "notout" | "chance" | "neutral"
+// ─────────────────────────────────────────────────────────────────────────────
+const REF = {
+  test: {
+    "Out — Slow Bowlers": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing up rating.",
+      entries:[
+        ["11","'Keeper attempts swift leg-side stumping as sweep misses. (11)","chance"],
+        ["12","Skier to mid-off (C)(4). 1 run if catch dropped, batsmen cross if taken","chance"],
+        ["13","Off stump flattened as turn beats attempted cut. OUT","out"],
+        ["14","Fierce square drive straight to gully shin height. (C)(7)","chance"],
+        ["15","Top edge over square leg's head. He runs back to attempt catch. (C)(9). 1 run if dropped","chance"],
+        ["16","Easy caught and bowled chance. (Bowler)(5)","chance"],
+        ["22","Long leg runs 20 yards, dives for difficult catch. (O)(10). 3 runs if dropped, batsmen cross","chance"],
+        ["23","Bowled off pads. OUT","out"],
+        ["24","Bowled round legs trying to sweep. OUT","out"],
+        ["25","Mis-timed drive goes head high to cover point. (C)(5)","chance"],
+        ["26","Mis-timed hook drops into long leg's hands. (O)(4). 2 runs if dropped, batsmen cross","chance"],
+        ["33","Batsman deceived by slower ball. Catch to mid-on. (C)(6)","chance"],
+        ["34","Simple lobbed catch to mid-off. (C)(3)","chance"],
+        ["35","Full blooded drive. Cover point dives wide left. (O)(11). 1 run if dropped, batsmen cross","chance"],
+        ["36","Hard hit drive. Mid-on gets both hands to ball. (C)(7)","chance"],
+        ["44","Clean bowled through the gate. OUT","out"],
+        ["45","Faster ball. Outside edge to gully off defensive prod. (C)(5)","chance"],
+        ["46","Pull mis-timed. Ball skies to deep mid-wicket. (O)(6). 2 runs if dropped, batsmen cross","chance"],
+        ["55","Bowled as tentative defensive shot misses. OUT","out"],
+        ["56","Catch to long leg off sweep. (O)(7). 1 run if dropped, batsmen cross","chance"],
+        ["66","Bowled hitting across the line. OUT","out"],
+      ]
+    },
+    "Out — Medium Bowlers": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing up rating.",
+      entries:[
+        ["11","Backward short leg dives to catch uppish leg glance. (C)(8)","chance"],
+        ["12","Bowled off inside edge trying to force on the off-side. OUT","out"],
+        ["13","Slower ball. Mis-timed drive in air to mid-off. (C)(5). 1 run if dropped","chance"],
+        ["14","Attempted hook. Easy catch to square leg. (C)(4)","chance"],
+        ["15","Tentative push to mid-wicket who dives for catch. (O)(4). 1 run if dropped","chance"],
+        ["16","Attempted cut takes top edge, skies to third man. (O)(5). 2 runs if dropped, batsmen cross","chance"],
+        ["22","Ball dragged onto off stump trying to cut. OUT","out"],
+        ["23","Attempted hook takes top edge. Skier to wicket-keeper. (4)","chance"],
+        ["24","Hard hit drive gives bowler caught and bowled chance. (7)","chance"],
+        ["25","Stumping chance as off drive misses. (6)","chance"],
+        ["26","Deceived by slightly faster ball. Gloved to gully. (C)(5)","chance"],
+        ["33","Bowled as ball keeps low. OUT","out"],
+        ["34","Poor shot. Easy catch to cover point. (O)(3)","chance"],
+        ["35","Swung to leg in the air, straight to mid-wicket. (O)(5). 1 run if dropped","chance"],
+        ["36","Bowled as late in-swing beats cover drive. OUT","out"],
+        ["44","Lofted straight drive. Deep mid-on attempts catch just inside ropes. (O)(7). 3 runs if dropped","chance"],
+        ["45","Skier to deep square leg. (O)(5). 2 runs if dropped, batsmen cross","chance"],
+        ["46","Mis-timed drive gives knee high catch to mid-on. (C)(6)","chance"],
+        ["55","Off bail removed as no shot is offered. OUT","out"],
+        ["56","Bowled around legs. OUT","out"],
+        ["66","Long leg attempts difficult catch off hook shot. (O)(10). Ball goes for 4 if dropped, batsmen cross","chance"],
+      ]
+    },
+    "Out — Fast / Fast-Medium": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing back rating.",
+      entries:[
+        ["11","Middle stump sent cart wheeling. OUT","out"],
+        ["12","Leg glance takes shoulder of bat. Chance to backward short leg. (C)(7)","chance"],
+        ["13","Mis-hit hook skied to mid-on. (C)(6). 1 run if dropped, batsmen cross","chance"],
+        ["14","Drive hit straight back to bowler. Tricky caught and bowled chance. (8)","chance"],
+        ["15","Deep mid-wicket attempts catch from lofted pull. (O)(6). 3 runs if dropped, batsmen cross","chance"],
+        ["16","Bowled off pads. OUT","out"],
+        ["22","Slower ball. Uppish drive to extra cover. (O)(5). 1 run if dropped","chance"],
+        ["23","Catch to backward short leg off glove. (C)(5)","chance"],
+        ["24","Off stump knocked out of ground. OUT","out"],
+        ["25","Careless shot. Easy catch to mid-off. (C)(4)","chance"],
+        ["26","Beaten by pace and bowled playing back foot defensive. OUT","out"],
+        ["33","Mis-timed drive. Simple catch to mid-on. (C)(3)","chance"],
+        ["34","Leading edge catch to square leg. (O)(5). 1 run if dropped, batsmen cross","chance"],
+        ["35","Forward short leg dives as ball pops up from bat and pad. (C)(9)","chance"],
+        ["36","Full blooded drive straight to mid-on. (C)(7). 1 run if dropped","chance"],
+        ["44","Mis-timed drive. Skier to mid-wicket. (O)(6). 1 run if dropped, batsmen cross","chance"],
+        ["45","Late in-swing beats attempted drive. Leg stump knocked back. OUT","out"],
+        ["46","Faster ball beats tentative defensive shot. Bowled. OUT","out"],
+        ["55","Deep mid-wicket waits inside boundary to take lofted pull. (O)(6). 3 runs if dropped, batsmen cross","chance"],
+        ["56","Bowled all ends up as ball nips in off the seam. OUT","out"],
+        ["66","Square drive takes thick outside edge and flies to gully. (C)(7)","chance"],
+      ]
+    },
+    "Appeal — Slow Bowlers": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing up rating.",
+      entries:[
+        ["11","Bat and pad chance to forward short leg. (C)(7)","chance"],
+        ["12","Bowled as attempted sweep misses. OUT","out"],
+        ["13","Loud shout for a catch by the Keeper as cut shot misses. NOT OUT","notout"],
+        ["14","L.B.W. appeal turned down. NOT OUT","notout"],
+        ["15","Batsman fails to pick the top-spinner. L.B.W. as ball keeps low. OUT","out"],
+        ["16","Attempted off drive misses, stumping appeal. Foot left grounded. NOT OUT","notout"],
+        ["22","Quick leg side stumping attempt. NOT OUT","notout"],
+        ["23","Shout for L.B.W. as no stroke offered. NOT OUT","notout"],
+        ["24","Thin edge to wicket-keeper. OUT","out"],
+        ["25","Everyone goes up for bat and pad catch (C). NOT OUT given.","notout"],
+        ["26","Ball flies to backward short leg off glove. (C)(5)","chance"],
+        ["33","Leg sweep misses and L.B.W. appeal is upheld. OUT","out"],
+        ["34","Very difficult leg side stumping chance as leg sweep misses. (Wkt-Kp)(14)","chance"],
+        ["35","Hesitant defensive shot outside off stump. Shout for caught behind turned down. NOT OUT","notout"],
+        ["36","Struck on front pad as defensive prod misses. L.B.W. appeal upheld. OUT","out"],
+        ["44","Loud shout for L.B.W. as swing to leg misses. NOT OUT. (Optional leg bye, Close)","notout"],
+        ["45","Stumping chance as forward defensive shot misses. (8)","chance"],
+        ["46","'Keeper takes bottom edge nick low down. Appeal for catch turned down. NOT OUT","notout"],
+        ["55","Ball spins back from pad and trickles onto the stumps, leg bail dislodged. OUT","out"],
+        ["56","Attempted square drive off back foot. Appeal for Ct. Wkt. NOT OUT","notout"],
+        ["66","Top-spinner gets under attempted drive. Confident shout for L.B.W. turned down. NOT OUT","notout"],
+      ]
+    },
+    "Appeal — Medium Bowlers": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing up rating.",
+      entries:[
+        ["11","Plumb L.B.W. as swing to leg misses. OUT","out"],
+        ["12","Faster ball gets past defensive prod but L.B.W. appeal turned down. NOT OUT","notout"],
+        ["13","Stumping chance as attempted cover drive misses. (9)","chance"],
+        ["14","Big shout for caught behind, turned down. NOT OUT","notout"],
+        ["15","In-swinger raps batsman on pads. L.B.W. appeal turned down. NOT OUT (Optional leg bye, Close)","notout"],
+        ["16","Late swing beats attempted on drive. L.B.W. appeal upheld. OUT","out"],
+        ["22","'Keeper takes bails off as attempted turn to leg misses. NOT OUT","notout"],
+        ["23","Straight forward catch to leg slip off top edge as batsman sweeps. (C)(6)","chance"],
+        ["24","Back defensive shot misses. L.B.W. appeal upheld. OUT","out"],
+        ["25","Off stump flattened as drive misses. OUT","out"],
+        ["26","Inside edge onto pads. L.B.W. appeal by 'Keeper and slips turned down. NOT OUT","notout"],
+        ["33","Slips all go up for a catch as ball clips the pad. NOT OUT","notout"],
+        ["34","Ball loops up off bat and pad to gully who dives for catch. (C)(7)","chance"],
+        ["35","Big heave to leg fails to make contact. L.B.W. OUT","out"],
+        ["36","Confident shout for caught behind as batsman spars outside off stump. NOT OUT","notout"],
+        ["44","Hard snick hits wicket-keeper on shoulder. He dives sideways to attempt catch. (10)","chance"],
+        ["45","Easy stumping chance as batsman beaten on front foot. (4)","chance"],
+        ["46","Inside edge onto stumps. Bowled. OUT","out"],
+        ["55","Ball keeps low. Big shout for L.B.W. turned down. NOT OUT","notout"],
+        ["56","Ball hits batsman on knee roll of pad. L.B.W. appeal upheld. OUT","out"],
+        ["66","Leg stump knocked back as late swing beats attempted leg glance. OUT","out"],
+      ]
+    },
+    "Appeal — Fast / Fast-Medium": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing back rating.",
+      entries:[
+        ["11","Beaten for pace off the pitch but L.B.W. appeal turned down. NOT OUT","notout"],
+        ["12","Slips go up for catch as ball deflects off pads. NOT OUT","notout"],
+        ["13","'Keeper goes for catch down leg-side off attempted leg-glance. (10)","chance"],
+        ["14","Off and middle stumps knocked over as cover drive gets only fresh air. OUT","out"],
+        ["15","L.B.W. as batsman beaten for pace. OUT","out"],
+        ["16","'Keeper dives as batsman beaten by late swing and gets a thick edge. (11)","chance"],
+        ["22","Big shout by 'keeper and slips for caught behind, appeal turned down. NOT OUT","notout"],
+        ["23","Appeal for bat and pad catch at forward short leg turned down. NOT OUT","notout"],
+        ["24","L.B.W. attempting to turn ball through mid-wicket. OUT","out"],
+        ["25","Appeal for Ct. Wkt. down leg-side as ball flicks off thigh pad. NOT OUT","notout"],
+        ["26","Ball keeps low, batsman unable to get bat down in time. L.B.W. OUT","out"],
+        ["33","Batsman flashes outside off stump. Ct. Wkt. Appeal turned down. NOT OUT","notout"],
+        ["34","L.B.W. appeal as batsman offers no stroke. Umpire gives NOT OUT","notout"],
+        ["35","Short leg dives forward as deflection off batsman's glove drops a yard in front. (C)(8)","chance"],
+        ["36","Out-swinger has batsman groping outside off stump. Caught behind turned down. NOT OUT","notout"],
+        ["44","Off stump flattened as batsman is beaten by extra pace. OUT","out"],
+        ["45","Confident shout for Ct. Wkt. turned down. NOT OUT","notout"],
+        ["46","Plumb L.B.W. as batsman plays across the line. OUT","out"],
+        ["55","Easy chance to 'keeper off very fine outside edge. (5)","chance"],
+        ["56","'Keeper goes low to take snick with both gloves. (7)","chance"],
+        ["66","Big shout by bowler for L.B.W. as late swing beats back defensive shot. NOT OUT","notout"],
+      ]
+    },
+    "Non-Specific Appeal": { special:"ns-test" },
+    "Ball in the Air": {
+      note:"Roll 2D6, reading lowest first.",
+      entries:[
+        ["11","Ball flies to gully's right inches off ground. (C)(12). Optional quick single if dropped","chance"],
+        ["12","Hard chance to mid-off as drive mis-timed. (O)(10). 1 run if dropped","chance"],
+        ["13","Uppish shot falls just short of mid-wicket. (O) 1 run","neutral"],
+        ["14","Comfortable catch for extra cover. (O)(4). 1 run if dropped","chance"],
+        ["15","Swung high to long leg. Fielder has to run in fast. (O)(8). 3 runs if dropped, batsmen cross","chance"],
+        ["16","Hook in air just wide of square leg. (O) 2 runs","neutral"],
+        ["22","Ball hit hard knee high to mid-wicket. (O)(8). 1 run if dropped","chance"],
+        ["23","Difficult catch for mid-on running backwards. (C)(9). 2 runs if dropped, batsmen cross","chance"],
+        ["24","Hard chance to fielder on mid-wicket boundary. (O)(11). 2 runs if dropped, batsmen cross","chance"],
+        ["25","Ball driven hard, shoulder high into covers. (O)(9). 1 run if dropped, batsmen cross","chance"],
+        ["26","Badly timed hook just clears square leg. (O) 2 runs","neutral"],
+        ["33","Skier to deep mid-wicket, fielder directly underneath. (O)(5). 3 runs if dropped, batsmen cross","chance"],
+        ["34","Fierce drive in air towards mid-off's left. (C)(10). 1 run if dropped. Optional 2nd run close","chance"],
+        ["35","Easy catch to third man off attempted cut. (O)(6). 1 run if dropped, batsmen cross","chance"],
+        ["36","Difficult chance to backward short leg. (C)(10)","chance"],
+        ["44","Simple catch to mid-on as pace misjudged. (C)(3)","chance"],
+        ["45","Full length dive by short leg as ball turned off legs. (C)(12)","chance"],
+        ["46","Comfortable two handed chance to cover. (O)(6). 1 run if dropped","chance"],
+        ["55","Lofted drive to long off. Fielder has to run around boundary ropes. (O)(7). 2 runs if dropped","chance"],
+        ["56","Batsman safe as ball drops wide of fielder at mid-wicket. (O) 3 runs","neutral"],
+        ["66","Great effort by deep mid-off who runs 30 yards and dives. (O)(14). 3 runs if dropped, batsmen cross","chance"],
+      ]
+    },
+    "False Shot Chart": {
+      note:"Roll 2D6, reading lowest first.",
+      entries:[
+        ["11","Slower ball, difficult caught and bowled chance. (Bowler)(12)","chance"],
+        ["12","Nervous defensive shot pops ball up, falls short of forward short leg. (C)","neutral"],
+        ["13","Inside edge onto pad, catch to forward short leg. (C)(7)","chance"],
+        ["14","Bowler stifles appeal as thin inside edge saves batsman from plumb L.B.W.","neutral"],
+        ["15","Chopped down hard, just wide of off stump. No run","neutral"],
+        ["16","Outside edge goes first bounce to slip. (C)","neutral"],
+        ["22","Inside edge onto leg stump, played on. OUT","out"],
+        ["23","Short leg (C) appeals for bat and pad catch. NOT OUT","notout"],
+        ["24","Hard chance to backward short leg off shoulder of bat. (C)(10)","chance"],
+        ["25","Inside edge onto pad. Sharp chance to silly mid-on. (C)(11)","chance"],
+        ["26","No stroke to ball outside off stump. Loud shout for L.B.W. turned down. NOT OUT","notout"],
+        ["33","Slower ball. Ball popped up but falls short of mid-off. (C)","neutral"],
+        ["34","Mis-hit drive caught by bowler. NOT OUT bump ball","notout"],
+        ["35","Faster ball. Thick edge to second slip. (C)(8)","chance"],
+        ["36","Untidy defensive shot. Ball nearly carries to silly mid-off. (C)","neutral"],
+        ["44","Outside edge. First bounce to gully. (C)","neutral"],
+        ["45","Faster ball. Batsman just keeps ball out with late defensive prod","neutral"],
+        ["46","Played uppishly to cover. Very difficult diving chance. (O)(14)","chance"],
+        ["55","Careless shot outside off stump. Low chance to gully. (C)(9)","chance"],
+        ["56","Short leg and bowler claim catch off bat and pad. NOT OUT","notout"],
+        ["66","L.B.W. playing no shot. OUT","out"],
+      ]
+    },
+    "Edged Chance Chart": {
+      note:"Roll 2D6, reading lowest first.",
+      entries:[
+        ["11","Thin edge to wicket-keeper. (5)","chance"],
+        ["12","Ball just fails to carry to slip (C). No run","neutral"],
+        ["13","Over slip's heads — 4 runs","neutral"],
+        ["14","Just wide of gully (C) at shoulder height — 2 runs","neutral"],
+        ["15","Short leg dives for low catch. (C)(8)","chance"],
+        ["16","Top edge catch to wicket-keeper. (6)","chance"],
+        ["22","Wicket-keeper dives to his right but ball evades him and 1st slip — 1 run","neutral"],
+        ["23","Slip dives forward as ball drops six feet in front of him. (C)(14)","chance"],
+        ["24","Outside edge flies wide of slip — 1 run. (Optional 2nd run, Outfield)","neutral"],
+        ["25","Inside edge evades wicket-keeper's dive — 4 runs","neutral"],
+        ["26","Low chance evades slip (C) — 3 runs","neutral"],
+        ["33","Faint tickle to wicket-keeper. Easy catch. (3)","chance"],
+        ["34","Hard chance low down to gully. (C)(8)","chance"],
+        ["35","Magnificent dive down leg side by wicket-keeper. (15). 2 runs if dropped","chance"],
+        ["36","Straight forward chance to slip. (C)(5)","chance"],
+        ["44","Ball flies off batsman's glove straight to gully. (C)(4)","chance"],
+        ["45","In air between slip (C) and gully (C) — 2 runs","neutral"],
+        ["46","Slip dives wide for difficult chance. (C)(10). Optional quick single if dropped","chance"],
+        ["55","Ankle high chance to gully. (C)(7)","chance"],
+        ["56","Edged high into slips. (C)(8). 2 runs if dropped","chance"],
+        ["66","Ball flies off bat and pad to short leg. (C)(9)","chance"],
+      ]
+    },
+    "Batsman Struck Chart": {
+      note:"Roll a single die twice, add the scores.",
+      entries:[
+        ["2","Felled by blow on temple. RETIRES HURT — cannot return this match","out"],
+        ["3","Struck on head. Retires hurt but can return on fall of next wicket, without Batting Well panel","out"],
+        ["4","Struck in face. Bats on but remove Batting Well panel if currently in position","neutral"],
+        ["5","Struck on body — no effect","neutral"],
+        ["6","Struck on hand — no effect","neutral"],
+        ["7","Struck on shoulder — no effect","neutral"],
+        ["8","Struck on forearm — no effect","neutral"],
+        ["9","Struck on upper arm — no effect","neutral"],
+        ["10","Struck on hand. Bats on but remove Batting Well panel if currently in position","neutral"],
+        ["11","Struck below the heart. Retire hurt but may return on fall of next wicket, without Batting Well panel","out"],
+        ["12","Struck on hand. Bone broken. RETIRES HURT — unable to return","out"],
+      ]
+    },
+    "Extras Chart": {
+      note:"If green dice NOT a double: add to bowler's Extras rating and consult this chart.",
+      entries:[
+        ["3","No extra","neutral"],
+        ["4","No extra","neutral"],
+        ["5","Re-action run out chance","neutral"],
+        ["6","No Ball (1)","neutral"],
+        ["7","Wide (1)","neutral"],
+        ["8","Wide (1)","neutral"],
+        ["9","No Ball. Possible hit — re-roll all dice. If no runs scored count as No Ball (1)","neutral"],
+        ["10","Wide (1)","neutral"],
+        ["11","Possible warning for running on pitch. Re-roll dice as usual, THEN roll 1D6: 1-3=Umpire looks but no action; 4,5=Quiet word with bowler; 6=Official caution","neutral"],
+        ["12","No Ball. Possible hit — same action as 9 above","neutral"],
+        ["13","No Ball — WK fails to handle delivery. Roll 1D6: 1=1, 2=2, 3=3, 4&5=4, 6=2 runs","neutral"],
+        ["14","Wide — Roll 1D6, same action as 13 above","neutral"],
+        ["15","Re-action run out chance","neutral"],
+        ["16","No Ball (1). If bowler is FM or F this is a beamer. 1st offence=caution; 2nd=warning; 3rd=banned from bowling this innings","neutral"],
+        ["17","No Ball (1)","neutral"],
+      ]
+    },
+    "Special Events": {
+      note:"If green dice IS a double: re-roll and consult this chart.",
+      entries:[
+        ["2","Bowler pulls muscle. May complete over but cannot bowl again today. Roll 1D6 end of day: 1=out for match, other=fit next day. Batting unaffected","out"],
+        ["3","Fielder injured (excluding WK and bowler). Roll 1D6: 1-3=Close fielder, 4-6=Outfielder. Cannot play today. Roll 1D6 end of day: 1=out for match, other=fit next day","neutral"],
+        ["4-9","No Ball, no chance of a scoring shot","neutral"],
+        ["10","No Ball. Hit into grandstand for 6 runs","neutral"],
+        ["11","No Ball. Hit into crowd for 6 runs","neutral"],
+        ["12","Batsman pulls muscle. May bat on (with runner) but remove BW panel for rest of day. Cannot field today — replaced by 12th man. Resumes normally next day","neutral"],
+      ]
+    },
+    "Byes & Leg Byes": { special:"byes" },
+    "Weather Charts": { special:"weather" },
+  },
+  odi: {
+    "Out — Slow Bowlers": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing up rating.",
+      entries:[
+        ["11","Very difficult leg side stumping chance. (12)","chance"],
+        ["12","Ball skied to mid-off. (C)(6)","chance"],
+        ["13","Off stump clipped as no stroke offered. BOWLED","out"],
+        ["14","Hit hard but in the air to gully. (C)(8)","chance"],
+        ["15","Easy caught and bowled chance. (6)","chance"],
+        ["16","Difficult chance to square leg running back. (C)(10). 1 run if dropped","chance"],
+        ["22","Hook mistimed to long leg who runs in hard. (O)(11). 2 runs if dropped, batsmen cross","chance"],
+        ["23","BOWLED off pads","out"],
+        ["24","Clean BOWLED trying to sweep","out"],
+        ["25","Easy catch to cover point. (O)(6)","chance"],
+        ["26","Mistimed leg sweep. Easy catch to long leg. (O)(6). 2 runs if dropped, batsmen cross","chance"],
+        ["33","BOWLED trying to drive","out"],
+        ["34","Hit hard but in the air to mid-on. (C)(7)","chance"],
+        ["35","Pull to deep mid-wicket in the air. Fielder needs 20 yards. (O)(9). 2 runs if dropped, batsmen cross","chance"],
+        ["36","Ball nips back through the gate and knocks back middle and leg stumps. BOWLED","out"],
+        ["44","Stumping chance as off drive misses. (8)","chance"],
+        ["45","Ball driven at ankle height to mid-off. (C)(8)","chance"],
+        ["46","Pull mistimed. Easy catch to mid-wicket. (O)(3)","chance"],
+        ["55","BOWLED by top-spinner","out"],
+        ["56","Chance to long leg as ball goes skywards from attempted leg sweep. (O)(6). 1 run if dropped, batsmen cross","chance"],
+        ["66","BOWLED hitting across the line","out"],
+      ]
+    },
+    "Out — Medium Bowlers": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing up rating.",
+      entries:[
+        ["11","Brilliant attempt by short fine leg to catch ball glanced off legs. (C)(13)","chance"],
+        ["12","BOWLED attempting to clip ball to leg side","out"],
+        ["13","Lofted drive towards deep mid-off. (O)(7). 2 runs if dropped, batsmen cross","chance"],
+        ["14","Attempted hook. Easy lobbed catch to square leg. (C)(4)","chance"],
+        ["15","Mid-wicket dives to attempt low catch to his right. (O)(8). 1 run if dropped","chance"],
+        ["16","Mistimed off drive. Outside edge to third man running in. (O)(5). 1 run if dropped","chance"],
+        ["22","Played on attempting to cut. BOWLED","out"],
+        ["23","Miss-hit hook gives easy skied chance to wicket-keeper. (3)","chance"],
+        ["24","Sharp caught and bowled chance off mistimed drive. (9)","chance"],
+        ["25","Stumping chance as off drive misses. (6)","chance"],
+        ["26","Chance to gully after wild slash to ball wide of off stump. (C)(6)","chance"],
+        ["33","BOWLED as ball keeps low","out"],
+        ["34","Slower ball. Easy lobbed catch to cover point. (O)(4)","chance"],
+        ["35","Swung hard to leg, but straight to mid-wicket. (O)(7). 1 run if dropped","chance"],
+        ["36","Clean BOWLED as drive misses","out"],
+        ["44","Lofted straight drive. Attempted catch by deep mid-off running back. (O)(8). 3 runs if dropped, batsmen cross","chance"],
+        ["45","Cross batted shot. Easy catch to deep square leg. (O)(5). 2 runs if dropped, batsmen cross","chance"],
+        ["46","Off bail removed as batsman shoulders arms. BOWLED","out"],
+        ["55","Knee high catch to mid-on. (C)(7)","chance"],
+        ["56","Batsman deceived by leg-cutter pitching outside leg stump. BOWLED around legs","out"],
+        ["66","Hard chance to long leg off attempted hook. (O)(10). 2 runs if dropped, batsmen cross","chance"],
+      ]
+    },
+    "Out — Fast / Fast-Medium": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing back rating.",
+      entries:[
+        ["11","Middle stump knocked out of ground. BOWLED","out"],
+        ["12","Leg glance in the air gives sharp chance to backward short leg. (C)(8)","chance"],
+        ["13","Miss-hit hook skied to mid-on. (C)(5)","chance"],
+        ["14","Ball driven back hard to bowler, difficult caught and bowled chance. (10)","chance"],
+        ["15","Inside edge shatters batsman's stumps. BOWLED","out"],
+        ["16","Hard chance to long on as pull shot mistimed. (O)(9). 2 runs if dropped, batsmen cross","chance"],
+        ["22","Low chance to extra cover off hard hit drive. (O)(7). 1 run if dropped, batsmen cross","chance"],
+        ["23","Catch to short fine leg off drive. (C)(4)","chance"],
+        ["24","Off stump sent flying through the air. BOWLED","out"],
+        ["25","Miss-hit drive gives catch to mid-on. (C)(5)","chance"],
+        ["26","BOWLED playing defensively off the back foot","out"],
+        ["33","Slower ball. Batsman totally deceived, lobs up catch to mid-on. (C)(5)","chance"],
+        ["34","Simple catch off glove to square leg. (C)(4)","chance"],
+        ["35","Superb diving attempt by wicket-keeper to take catch off leg side flick. (11). 2 runs if dropped","chance"],
+        ["36","Full blooded drive, mid-on attempts spectacular catch. (C)(11)","chance"],
+        ["44","Lofted drive to mid-wicket. (O)(7). 1 run if dropped","chance"],
+        ["45","Mistimed hook to long leg. (O)(6). 2 runs if dropped, batsmen cross","chance"],
+        ["46","BOWLED all ends up as drive is beaten by extra pace","out"],
+        ["55","Pull to mid-wicket. Fielder attempts catch just inside the ropes. (O)(6). 3 runs if dropped, batsmen cross","chance"],
+        ["56","Leg stump flattened by ball that nips back off the seam. BOWLED","out"],
+        ["66","Hard chance to gully off square drive. (C)(8)","chance"],
+      ]
+    },
+    "Appeal — Slow Bowlers": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing up rating.",
+      entries:[
+        ["11","Straight forward top edge catch to wicket-keeper. (6)","chance"],
+        ["12","L.B.W. as ball keeps low. OUT","out"],
+        ["13","Loud shout for caught WK from attempted cut. NOT OUT","notout"],
+        ["14","L.B.W. appeal turned down. NOT OUT","notout"],
+        ["15","Attempted off drive misses. Stumping appeal turned down. NOT OUT","notout"],
+        ["16","L.B.W. as hook misses. OUT","out"],
+        ["22","Leg side stumping attempt. NOT OUT","notout"],
+        ["23","Struck on pads attempting to drive. L.B.W. turned down. NOT OUT pitched outside line. (Re-action run out chance)","notout"],
+        ["24","Down the wicket, easy stumping chance. (WK)(4)","chance"],
+        ["25","Appeal for bat and pad catch to short leg. NOT OUT (C)","notout"],
+        ["26","Ball flicks batsman's glove. Chance of catch by wicket-keeper. (5)","chance"],
+        ["33","Leg sweep misses. L.B.W. appeal upheld. OUT","out"],
+        ["34","Attempted leg side stumping as leg sweep misses. (WK)(10)","chance"],
+        ["35","Loud shout for catch by wicket-keeper. Turned down. NOT OUT","notout"],
+        ["36","Bowled through the gate. OUT","out"],
+        ["44","Appeal for L.B.W. as ball keeps low. Missing leg stump. NOT OUT","notout"],
+        ["45","Stumping chance as forward defensive shot misses. (WK)(7)","chance"],
+        ["46","Beaten and BOWLED trying to drive off back foot. OUT","out"],
+        ["55","Ball taken low down by wicket-keeper. Appeal for catch turned down. NOT OUT","notout"],
+        ["56","Appeal for caught WK down leg side. NOT OUT","notout"],
+        ["66","Confident shout for L.B.W. as drive misses. OUT","out"],
+      ]
+    },
+    "Appeal — Medium Bowlers": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing up rating.",
+      entries:[
+        ["11","Leg stump knocked back as swing to leg misses. BOWLED","out"],
+        ["12","Loud shout for L.B.W. turned down, missing off stump. NOT OUT","notout"],
+        ["13","Attempted stumping as back foot lifted. (WK)(8)","chance"],
+        ["14","Caught behind appeal turned down. NOT OUT","notout"],
+        ["15","Struck on pads as leg sweep misses. Appeal turned down, ball misses leg stump. NOT OUT (Re-action run out chance)","notout"],
+        ["16","L.B.W. as on drive misses. Plumb, ball hitting middle and leg. OUT","out"],
+        ["22","Attempted stumping. NOT OUT as back foot returned to crease in time","notout"],
+        ["23","Top edge to wicket-keeper off attempted leg sweep. (WK)(6)","chance"],
+        ["24","Back defensive shot misses. L.B.W. appeal upheld. OUT, poor decision as ball appeared to be missing leg stump","out"],
+        ["25","Off stump knocked back as drive misses. BOWLED","out"],
+        ["26","L.B.W. appeal turned down. NOT OUT. Bowler disappointed","notout"],
+        ["33","Inside edge onto pads. Loud shout for L.B.W. turned down. NOT OUT","notout"],
+        ["34","BOWLED off pads","out"],
+        ["35","L.B.W. appeal upheld as big swish to leg gets nothing but fresh air. OUT","out"],
+        ["36","Flash outside off stump. Confident shout for caught behind turned down. Fielding side very unhappy","notout"],
+        ["44","Wicket-keeper attempts to grab ball at second attempt as it rebounds from his chest. (WK)(9)","chance"],
+        ["45","Stumping attempt as batsman lifts back foot. (9)","chance"],
+        ["46","L.B.W. trying to force the ball away to leg. OUT","out"],
+        ["55","Ball hits batsman high up on pad. L.B.W. appeal turned down. NOT OUT","notout"],
+        ["56","L.B.W. appeal as ball hits back foot. NOT OUT, missing leg stump just","notout"],
+        ["66","Stumping chance as off drive misses. (7)","chance"],
+      ]
+    },
+    "Appeal — Fast / Fast-Medium": {
+      note:"Roll 2D6, reading lowest first. Use Wicket-Keeper's standing back rating.",
+      entries:[
+        ["11","Loud appeal for L.B.W. turned down. NOT OUT","notout"],
+        ["12","Appeal for catch in slips turned down. (C) NOT OUT","notout"],
+        ["13","Difficult chance to wicket-keeper off attempted leg glance. (9)","chance"],
+        ["14","Easy top edge chance to wicket-keeper. (4)","chance"],
+        ["15","Beaten by extra pace. L.B.W. plumb hitting middle stump. OUT","out"],
+        ["16","Wicket-keeper dives for outside edge off attempted drive. (9)","chance"],
+        ["22","Confident shout for L.B.W. turned down. NOT OUT","notout"],
+        ["23","Off drive. Ball flies high into slips. Difficult chance. (C)(10)","chance"],
+        ["24","Beaten by extra pace. BOWLED","out"],
+        ["25","Appeal for leg side catch by wicket-keeper. NOT OUT","notout"],
+        ["26","Attempted cut shot. Inside edge onto stumps. BOWLED","out"],
+        ["33","Wicket-keeper appeals for catch off an attempted cut. NOT OUT","notout"],
+        ["34","L.B.W. appeal turned down. NOT OUT. (Re-action run out chance)","notout"],
+        ["35","Ball skied to wicket-keeper off attempted pull shot to mid-wicket. (5)","chance"],
+        ["36","Appeal for bat and pad catch to short fine leg. NOT OUT (C)","notout"],
+        ["44","L.B.W. as defensive prod misses. Dubious decision — batsman was a long way forward. OUT","out"],
+        ["45","'Impossible' chance to a diving gully off a full blooded square drive. (C)(14)","chance"],
+        ["46","Plumb L.B.W. as shot played across the line misses. OUT","out"],
+        ["55","Batsman gets thin tickle to a good length delivery. Appeal for caught behind upheld. (WK) OUT","out"],
+        ["56","Middle stump uprooted by in-swinger. BOWLED","out"],
+        ["66","Loud shout for L.B.W. NOT OUT, ball was clearly going over the top","notout"],
+      ]
+    },
+    "Non-Specific Appeal": { special:"ns-odi" },
+    "Ball in the Air": {
+      note:"Roll 2D6, adding scores together.",
+      entries:[
+        ["2","Ball hit hard and low to right of cover point. Fielder hurls himself sideways. (O)(10)","chance"],
+        ["3","Mistimed shot sends ball over mid-on's head. Fielder runs away to try catch. (C)(12). 1 run if dropped","chance"],
+        ["4","Ball drops just short of fielder, no run. (C)","neutral"],
+        ["5","Ball drops safe, 2 runs","neutral"],
+        ["6","Ball drops just out of fielder's reach. 1 run. (O)","neutral"],
+        ["7","Fielder has to make ground to his left as mistimed drive goes between mid-on and mid-wicket. (C)(6). 1 run if missed","chance"],
+        ["8","Ball flies off leading edge to square leg. (C)(4)","chance"],
+        ["9","Ball clears extra cover's head. (O) 3 runs","neutral"],
+        ["10","Short leg throws himself forward to try to catch bat and pad chance. (C)(8). Optional quick single if not taken","chance"],
+        ["11","Hook in air to long leg. Fielder has to run around boundary to attempt catch. (O)(9). 2 runs if dropped, batsmen cross","chance"],
+        ["12","Ball skied to deep third man. Ball drops in front of diving fielder and bounces over his head for 4 runs","neutral"],
+      ]
+    },
+    "Edged Chance Chart": {
+      note:"Roll 2D6, reading lowest first.",
+      entries:[
+        ["11","Thin edge, easy chance to wicket-keeper. (5)","chance"],
+        ["12","Ball just fails to carry to slip. No run. (C)","neutral"],
+        ["13","Over slips' heads. 4 runs. (C)","neutral"],
+        ["14","Just wide of gully. 2 runs. (C)","neutral"],
+        ["15","Flick off pads. Short fine leg dives to low chance. (C)(7). 1 run if chance missed","chance"],
+        ["16","Top edge chance to wicket-keeper. (6)","chance"],
+        ["22","Ball flies just wide of diving 'keeper. 1 run","neutral"],
+        ["23","Outside edge flies wide of slip. 1 run. (C). Optional 2nd run to third man (O)","neutral"],
+        ["24","Wicket-keeper hurls himself to his right to attempt catch. (10)","chance"],
+        ["25","Inside edge just evades wicket-keeper's dive. 4 runs","neutral"],
+        ["26","Very difficult low chance to slip. (C)(12). 3 runs if chance missed","chance"],
+        ["33","Simple catch to wicket-keeper. (3)","chance"],
+        ["34","Low chance to wicket-keeper. (8)","chance"],
+        ["35","Very difficult leg side chance to wicket-keeper. (12)","chance"],
+        ["36","Ball flies hard to slips. (C)(7)","chance"],
+        ["44","Inside edge evades short leg. 1 run. (C)","neutral"],
+        ["45","Outside edge dissects gully and slips. 2 runs. (C)","neutral"],
+        ["46","Very difficult chance to slips. (C)(10)","chance"],
+        ["55","Head high chance to gully. (C)(7)","chance"],
+        ["56","Straight forward chance to slips. (C)(6)","chance"],
+        ["66","Outside edge to wicket-keeper. (7)","chance"],
+      ]
+    },
+    "Batsman Struck Chart": {
+      note:"Roll a single die twice, add the scores.",
+      entries:[
+        ["2","Felled by blow on temple. RETIRES HURT — cannot return this match","out"],
+        ["3","Struck on head. Retires hurt but can return on fall of next wicket, without Batting Well panel","out"],
+        ["4","Struck in face. Bats on but remove Batting Well panel if currently in position","neutral"],
+        ["5","Struck on body — no effect","neutral"],
+        ["6","Struck on hand — no effect","neutral"],
+        ["7","Struck on shoulder — no effect","neutral"],
+        ["8","Struck on forearm — no effect","neutral"],
+        ["9","Struck on upper arm — no effect","neutral"],
+        ["10","Struck on hand. Bats on but remove Batting Well panel if currently in position","neutral"],
+        ["11","Struck below the heart. Retire hurt but may return on fall of next wicket, without Batting Well panel","out"],
+        ["12","Struck on hand. Bone broken. RETIRES HURT — unable to return","out"],
+      ]
+    },
+    "Extras Chart": {
+      note:"If green dice NOT a double: add to bowler's Extras rating and consult this chart.",
+      entries:[
+        ["3","No extra","neutral"],
+        ["4","No extra","neutral"],
+        ["5","Re-action run out chance","neutral"],
+        ["6","No Ball (1)","neutral"],
+        ["7","Wide (1)","neutral"],
+        ["8","Wide (1)","neutral"],
+        ["9","No Ball. Possible hit — re-roll all dice. If no runs scored count as No Ball (1)","neutral"],
+        ["10","Wide (1)","neutral"],
+        ["11","Possible warning for running on pitch. Re-roll dice as usual, THEN roll 1D6: 1-3=Umpire looks but no action; 4,5=Quiet word; 6=Official caution","neutral"],
+        ["12","No Ball. Possible hit — same action as 9 above","neutral"],
+        ["13","No Ball — WK fails to handle delivery. Roll 1D6: 1=1, 2=2, 3=3, 4&5=4, 6=2 runs (all count as No Balls)","neutral"],
+        ["14","Wide — Roll 1D6, same action as 13 above (all runs scored count as Wides)","neutral"],
+        ["15","Re-action run out chance","neutral"],
+        ["16","No Ball (1). If bowler is FM or F this is a beamer. 1st offence=caution; 2nd=warning; 3rd=banned from bowling this innings","neutral"],
+        ["17","No Ball (1)","neutral"],
+      ]
+    },
+    "Special Events": {
+      note:"If green dice IS a double: re-roll and consult this chart.",
+      entries:[
+        ["2","Bowler pulls muscle. May complete over (using Non-bowler's bowling card) but cannot bowl again this match. Must bat with runner and cannot earn BW panel","out"],
+        ["3","Weather +2","neutral"],
+        ["4","Weather +1 & Pitch Up","neutral"],
+        ["5","Pitch Down","neutral"],
+        ["6","Weather -1","neutral"],
+        ["7","Pitch Down","neutral"],
+        ["8","Weather +1","neutral"],
+        ["9","Pitch Up","neutral"],
+        ["10","Weather -1 & Pitch Down","neutral"],
+        ["11","Weather -2","neutral"],
+        ["12","Batsman pulls muscle. May bat on (with runner) but remove BW panel — cannot earn it again this match. May not bowl this match","neutral"],
+      ]
+    },
+    "Bowler's Extras Table": { special:"extras-odi" },
+    "Byes & Leg Byes": { special:"byes" },
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REF BAR LOGIC
+// ─────────────────────────────────────────────────────────────────────────────
+(function() {
+  const bar        = document.getElementById('refBar');
+  const toggle     = document.getElementById('rbToggle');
+  const fmtTag     = document.getElementById('rbFmtTag');
+  const chartTag   = document.getElementById('rbChartTag');
+  const chartSel   = document.getElementById('rbChartSelect');
+  const results    = document.getElementById('rbResults');
+  const btnTest    = document.getElementById('rbBtnTest');
+  const btnOdi     = document.getElementById('rbBtnOdi');
+
+  let fmt   = 'test';
+  let chart = '';
+
+  function populateCharts() {
+    chartSel.innerHTML = '<option value="">— select chart —</option>';
+    Object.keys(REF[fmt]).forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      if (c === chart) o.selected = true;
+      chartSel.appendChild(o);
+    });
+    if (chart && !REF[fmt][chart]) chart = '';
+  }
+
+  function colourDesc(desc) {
+    return desc
+      .replace(/\b(OUT|BOWLED)\b/g, m => `<span class="rb-out">${m}</span>`)
+      .replace(/\bNOT OUT\b/g, m => `<span class="rb-notout">${m}</span>`)
+      .replace(/\((\d+)\)/g, m => `<span class="rb-cval">${m}</span>`);
+  }
+
+  function rowClass(type) {
+    if (type === 'out')    return 'r-out';
+    if (type === 'notout') return 'r-not';
+    if (type === 'chance') return 'r-chance';
+    return '';
+  }
+
+  function renderByes() {
+    const rows = [
+      ["2","4 runs"],["3","3 runs"],["4","Quick fielding prevents a run"],
+      ["5","1 run (Optional extra run, Close)"],["6","2 runs"],["7","1 run"],
+      ["8","2 runs"],["9","1 run"],["10","Fielder in quickly (Optional run, Close)"],
+      ["11","4 runs"],["12","Misfield (O). 3 runs"]
+    ];
+    let html = `<div class="rb-rtitle">Byes &amp; Leg Byes — Roll 2D6</div>`;
+    html += `<p style="font-family:'IBM Plex Mono',monospace;font-size:0.5rem;color:var(--muted);margin-bottom:8px;">
+      BYES: WK has a chance to save them. Roll 2D6 + WK standing up/back rating.
+      If total ≥ 12 = great stop. Otherwise use table below.<br>
+      L/BYES: Roll 2D6 and use table below directly.
+    </p>`;
+    html += `<div class="rb-byes-grid">`;
+    rows.forEach(([d,v]) => {
+      html += `<div class="rb-byes-cell"><div class="rb-byes-n">${d}</div><div class="rb-byes-v">${v}</div></div>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+  function renderNsAppeal(f) {
+    return `
+      <div class="rb-rtitle">Non-Specific Appeal Chart — Roll 2D6</div>
+      <div class="rb-ns-panel">
+        <div class="rb-ns-row">
+          <div class="rb-ns-cell rb-ns-out">2, 6, (7), 8, 12<br>= OUT</div>
+          <div class="rb-ns-cell rb-ns-safe">3, 4, 5, 9, 10, 11<br>= NOT OUT</div>
+        </div>
+        <div class="rb-ns-cell rb-ns-opt">OPTIONAL RULE — Home advantage: Result (7) always favours the home side</div>
+        <div class="rb-ns-note">Results with a number in brackets, e.g. (7), are not automatic outs. Identify the fielder involved from either the close or outfield fielding display and roll 2D6, adding the total to the player's catching fielding rating. If the total achieved is equal to or greater than the figure in brackets, the out is recorded.</div>
+      </div>`;
+  }
+
+  function renderExtrasOdi() {
+    const grades = [
+      {g:"Grade A (Old Ratings 0 and +1)", rows:["6 = Wide","11 = No Ball (possible extra runs)"]},
+      {g:"Grade B (Old Rating +2)",        rows:["3 = Wide (possible extra runs)","4 = No Ball (possible extra runs)","8 = Wide","11 = Wide"]},
+      {g:"Grade C (Old Rating +3)",        rows:["5 = Wide (possible extra runs)","7 = Wide","8 = Wide","10 = No Ball (possible extra runs)"]},
+      {g:"Grade D (Old Rating +4)",        rows:["4 = Wide (possible extra runs)","6 = Wide","7 = Wide","8 = No Ball","9 = Wide"]},
+      {g:"Grade E (Old Ratings +5 and +6)",rows:["3 = Wide (possible extra runs)","5 = No Ball","6 = Wide","7 = Wide","8 = Wide","9 = No Ball","11 = Wide"]},
+    ];
+    let html = `<div class="rb-rtitle">Bowler's Extras Table — ODI</div>`;
+    html += `<p style="font-family:'IBM Plex Mono',monospace;font-size:0.48rem;color:var(--muted);margin-bottom:8px;line-height:1.5;">
+      Before resolving a delivery: if there is a double 5 or 6 on one red and one green die, there is a chance
+      of a Wide or No Ball. Total the OTHER two dice and check the Bowler's Letter Grade below.
+      If the total is not shown, treat as 'Good length — batsman swings and misses', a dot ball.
+    </p>`;
+    grades.forEach(({g, rows}) => {
+      html += `<div style="margin-bottom:7px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.5rem;color:var(--accent-bowl);letter-spacing:0.08em;margin-bottom:3px;">${g}</div>
+        <div class="rb-grid">`;
+      rows.forEach(r => {
+        const isWide  = r.includes('Wide');
+        const isNoB   = r.includes('No Ball');
+        const cls = isNoB ? 'r-out' : isWide ? 'r-chance' : '';
+        html += `<div class="rb-row ${cls}"><span class="rb-dice">—</span><span class="rb-desc">${r}</span></div>`;
+      });
+      html += `</div></div>`;
+    });
+    html += `<p style="font-family:'IBM Plex Mono',monospace;font-size:0.46rem;color:var(--muted);margin-top:6px;line-height:1.5;">
+      <b style="color:var(--text)">Possible extra runs (Wide):</b> Roll 2D6 + WK rating ≥ 12 = WK makes great save.
+      Otherwise roll 1D6: 1=1, 2=1, 3=2, 4=2, 5=4, 6=4 runs. All extra runs scored as WIDES.<br>
+      <b style="color:var(--text)">Possible extra runs (No Ball):</b> Re-roll action and resolve normally.
+      Any runs credited to batsman; byes/leg byes count as No Balls. Batsman cannot be out (except run out).
+    </p>`;
+    return html;
+  }
+
+  function renderWeather() {
+    const transition = [
+      [1,2,3,4,5,6,7,8,9,10],
+      [1,1,2,2,2,1,4,9,7,6],
+      [1,1,2,2,2,1,4,9,7,6],
+      [2,2,2,2,2,2,4,9,6,6],
+      [2,2,2,2,3,2,5,8,6,6],
+      [3,2,2,3,3,2,5,6,6,6],
+      [4,2,3,3,3,3,5,4,4,4],
+      [6,3,4,3,4,3,6,4,4,4],
+      [6,3,4,4,5,4,8,3,4,4],
+      [7,4,5,6,6,4,9,3,3,3],
+      [8,5,6,7,8,8,9,1,2,3],
+      [9,5,9,7,8,9,10,10,10,10],
+    ];
+    const initial = [
+      [2,"Card #3"],[3,"Card #1"],[4,"Card #7"],[5,"Card #5"],
+      [6,"Card #3"],[7,"Card #2"],[8,"Card #4"],[9,"Card #6"],
+      [10,"Card #8"],[11,"Card #9"],[12,"Card #10"],
+    ];
+    const delays = [
+      [2,"12 min","24 min","No further play today","1hr 47min"],
+      [3,"22 min","19 min","1hr 2min","1hr 8min"],
+      [4,"43 min","26 min","1hr 46min","1hr 40min"],
+      [5,"28 min","42 min","47 min","33 min"],
+      [6,"45 min","36 min","34 min","52 min"],
+      [7,"25 min","47 min","55 min","43 min"],
+      [8,"30 min","55 min","52 min","38 min"],
+      [9,"36 min","33 min","1hr 15min","1hr 10min"],
+      [10,"15 min","41 min","2hr 10min","55 min"],
+      [11,"19 min","38 min","1hr 25min","1hr 24min"],
+      [12,"50 min","30 min","2hr 23min","Ground flooded — no further play today"],
+    ];
+    let html = `<div class="rb-rtitle">Weather Charts — Test Match</div>`;
+    // Initial forecast
+    html += `<p style="font-family:'IBM Plex Mono',monospace;font-size:0.48rem;color:var(--muted);margin-bottom:6px;">INITIAL WEATHER FORECAST — Roll 2D6 for first day weather forecast card:</p>`;
+    html += `<div class="rb-grid" style="margin-bottom:10px;">`;
+    initial.forEach(([d,v]) => html += `<div class="rb-row"><span class="rb-dice">${d}</span><span class="rb-desc">${v}</span></div>`);
+    html += `</div>`;
+    // Transition table
+    html += `<p style="font-family:'IBM Plex Mono',monospace;font-size:0.48rem;color:var(--muted);margin-bottom:4px;">WEATHER TRANSITION TABLE (Roll 2D6 — read from current card row):</p>`;
+    html += `<div class="rb-weather-wrap"><table class="rb-weather-table"><tr><th>Roll↓ / Card→</th>`;
+    for(let i=1;i<=10;i++) html += `<th>${i}</th>`;
+    html += `</tr>`;
+    for(let r=2;r<=12;r++) {
+      html += `<tr><td>${r}</td>`;
+      for(let c=1;c<=10;c++) html += `<td>${transition[r-1][c-1]}</td>`;
+      html += `</tr>`;
+    }
+    html += `</table></div>`;
+    // Rain delays
+    html += `<p style="font-family:'IBM Plex Mono',monospace;font-size:0.48rem;color:var(--muted);margin:8px 0 4px;">RAIN DELAY CHART (Roll 2D6):</p>`;
+    html += `<div class="rb-weather-wrap"><table class="rb-rain-table"><tr><th>Roll</th><th>Light Shower</th><th>Heavy Shower</th><th>Rain</th><th>Thunderstorm</th></tr>`;
+    delays.forEach(([d,...v]) => {
+      html += `<tr><td>${d}</td>${v.map(x=>`<td>${x}</td>`).join('')}</tr>`;
+    });
+    html += `</table></div>`;
+    return html;
+  }
+
+  function renderResults() {
+    if (!chart) {
+      results.innerHTML = '<div class="rb-empty"><div class="rb-empty-icon">📋</div><div class="rb-empty-text">Select format &amp; chart</div></div>';
+      return;
+    }
+    const data = REF[fmt]?.[chart];
+    if (!data) return;
+
+    // Special renders
+    if (data.special === 'ns-test' || data.special === 'ns-odi') {
+      results.innerHTML = renderNsAppeal(fmt); return;
+    }
+    if (data.special === 'byes') {
+      results.innerHTML = renderByes(); return;
+    }
+    if (data.special === 'extras-odi') {
+      results.innerHTML = renderExtrasOdi(); return;
+    }
+    if (data.special === 'weather') {
+      results.innerHTML = renderWeather(); return;
+    }
+
+    // Standard entry list
+    let html = `<div class="rb-rtitle"><span class="rb-chart-label">${chart}</span></div>`;
+    if (data.note) html += `<p style="font-family:'IBM Plex Mono',monospace;font-size:0.48rem;color:var(--muted);margin-bottom:7px;letter-spacing:0.04em;">${data.note}</p>`;
+    html += `<div class="rb-grid">`;
+    data.entries.forEach(([dice, desc, type]) => {
+      html += `<div class="rb-row ${rowClass(type)}"><span class="rb-dice">${dice}</span><span class="rb-desc">${colourDesc(desc)}</span></div>`;
+    });
+    html += `</div>`;
+    results.innerHTML = html;
+  }
+
+  function updateTags() {
+    fmtTag.textContent = fmt === 'test' ? 'TEST' : 'ODI';
+    fmtTag.className   = 'rb-tag ' + (fmt === 'test' ? 't' : 'o');
+    chartTag.textContent = chart || 'Select chart';
+    chartTag.className   = 'rb-tag' + (chart ? ' c' : '');
+  }
+
+  toggle.addEventListener('click', () => bar.classList.toggle('open'));
+
+  [btnTest, btnOdi].forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      fmt = btn.dataset.fmt;
+      btnTest.className = 'rb-fbtn' + (fmt === 'test' ? ' at' : '');
+      btnOdi.className  = 'rb-fbtn' + (fmt === 'odi'  ? ' ao' : '');
+      populateCharts(); updateTags(); renderResults();
+    });
+  });
+
+  chartSel.addEventListener('change', e => {
+    chart = e.target.value; updateTags(); renderResults();
+  });
+
+  populateCharts(); updateTags();
+})();
+
+
+// ─── PWA: Service Worker (inline blob) ───────────────────────────────────────
+const SW_CODE = `
+const CACHE = 'cricket-cards-v1';
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll([location.pathname]))
+  );
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match(e.request)))
+  );
+});
+`;
+
+if ('serviceWorker' in navigator) {
+  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+
+// ─── PWA: Install prompt ─────────────────────────────────────────────────────
+let deferredPrompt = null;
+const banner   = document.getElementById('pwaBanner');
+const installBtn = document.getElementById('pwaInstallBtn');
+const dismissBtn = document.getElementById('pwaDismissBtn');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!sessionStorage.getItem('pwa-dismissed')) {
+    banner.style.display = 'flex';
+  }
+});
+
+installBtn && installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  banner.style.display = 'none';
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+});
+
+dismissBtn && dismissBtn.addEventListener('click', () => {
+  banner.style.display = 'none';
+  sessionStorage.setItem('pwa-dismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  banner.style.display = 'none';
+  deferredPrompt = null;
+});
+
+</script>
+</body>
+</html>
